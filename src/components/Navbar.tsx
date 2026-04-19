@@ -9,8 +9,19 @@ export default function Navbar({ isLoggedIn, onLoginToggle }: NavbarProps) {
   return (
     <nav className="navbar">
       <div className="navbar-brand">
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img src="/OpenEssex.png" alt="Logo" style={{ height: '30px' }} />
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img 
+            src="/OpenEssex.png" 
+            alt="Logo" 
+            style={{ 
+              height: '35px', 
+              width: '35px', 
+              borderRadius: '50%', 
+              objectFit: 'cover', 
+              objectPosition: 'center 15%',
+              border: '2px solid var(--accent)'
+            }} 
+          />
           <span>Open Essex</span>
         </Link>
       </div>

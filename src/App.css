@@ -18,10 +18,14 @@
 }
 
 .brand-logo {
-  width: 150px;
-  height: 150px;
-  object-fit: contain;
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+  object-position: center 15%; /* Crop to top graphic */
+  border-radius: 50%;
   margin: 0 auto;
+  border: 4px solid var(--accent);
+  box-shadow: var(--shadow);
 }
 
 .member-nav-links {
@@ -36,8 +40,8 @@
 .link-button {
   display: block;
   padding: 0.8rem 1.5rem;
-  background: var(--accent-bg);
-  color: var(--accent);
+  background: var(--accent);
+  color: white;
   text-decoration: none;
   border-radius: 8px;
   border: 1px solid var(--accent-border);
@@ -47,8 +51,8 @@
 }
 
 .link-button:hover {
-  background: var(--accent);
-  color: white;
+  background: var(--brand-red);
+  transform: translateY(-2px);
 }
 
 #center {
@@ -67,8 +71,9 @@
 
 #next-steps {
   display: flex;
-  border-top: 1px solid var(--border);
+  border-top: 2px solid var(--border);
   text-align: left;
+  background: var(--social-bg);
 
   & > div {
     flex: 1 1 0;
@@ -91,11 +96,11 @@
 }
 
 #docs {
-  border-right: 1px solid var(--border);
+  border-right: 2px solid var(--border);
 
   @media (max-width: 1024px) {
     border-right: none;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 2px solid var(--border);
   }
 }
 
@@ -114,16 +119,18 @@
     color: var(--text-h);
     font-size: 16px;
     border-radius: 6px;
-    background: var(--social-bg);
+    background: white;
+    border: 1px solid var(--border);
     display: flex;
     padding: 6px 12px;
     align-items: center;
     gap: 8px;
     text-decoration: none;
-    transition: box-shadow 0.3s;
+    transition: all 0.3s;
 
     &:hover {
       box-shadow: var(--shadow);
+      background: var(--accent-bg);
     }
     .button-icon {
       height: 18px;
@@ -150,7 +157,7 @@
 
 #spacer {
   height: 88px;
-  border-top: 1px solid var(--border);
+  border-top: 2px solid var(--border);
   @media (max-width: 1024px) {
     height: 48px;
   }
@@ -184,14 +191,14 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background: var(--accent-bg);
-  border-bottom: 1px solid var(--border);
+  background: var(--brand-red);
+  border-bottom: 3px solid var(--accent);
 }
 
 .navbar-brand a {
   font-size: 1.5rem;
   font-weight: bold;
-  color: var(--text-h);
+  color: white !important;
   text-decoration: none;
 }
 
@@ -203,9 +210,14 @@
 }
 
 .navbar-links a {
-  color: var(--text-h);
+  color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
   font-weight: 500;
+  transition: color 0.2s;
+}
+
+.navbar-links a:hover {
+  color: var(--accent);
 }
 
 .login-button {
@@ -217,10 +229,12 @@
   cursor: pointer;
   font-weight: bold;
   font-size: 0.9rem;
+  transition: background 0.2s;
 }
 
 .login-button:hover {
-  opacity: 0.9;
+  background: white;
+  color: var(--brand-red);
 }
 
 .page-container {
@@ -237,6 +251,7 @@
   padding: 1.5rem;
   background: var(--social-bg);
   border-radius: 8px;
+  border: 1px solid var(--accent-border);
 }
 
 .post-form input, .post-form textarea {
@@ -249,7 +264,7 @@
 
 .post-form button {
   padding: 0.8rem;
-  background: var(--accent);
+  background: var(--brand-red);
   color: white;
   border: none;
   border-radius: 4px;
@@ -264,14 +279,21 @@
 
 .card {
   padding: 1.5rem;
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: 8px;
-  background: var(--bg);
+  background: white;
   text-align: left;
+  transition: transform 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
 }
 
 .card h2 {
   margin-top: 0;
+  color: var(--brand-red);
 }
 
 .card .meta {

@@ -1,16 +1,16 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #f3811f;
-  --accent-bg: rgba(243, 129, 31, 0.1);
-  --accent-border: rgba(243, 129, 31, 0.5);
+  --text: #4a4a4a;
+  --text-h: #b02e40; /* Brand Red for headings */
+  --bg: #fffdfa; /* Slightly yellowish white */
+  --border: #f3811f; /* Brand Orange for borders */
+  --code-bg: #fff5eb;
+  --accent: #f3811f; /* Brand Orange */
+  --accent-bg: rgba(243, 129, 31, 0.15);
+  --accent-border: rgba(243, 129, 31, 0.6);
   --brand-red: #b02e40;
-  --social-bg: rgba(244, 243, 236, 0.5);
+  --social-bg: rgba(176, 46, 64, 0.05);
   --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+    rgba(176, 46, 64, 0.1) 0 10px 15px -3px, rgba(176, 46, 64, 0.05) 0 4px 6px -2px;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -18,7 +18,7 @@
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: light dark;
+  color-scheme: light;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -33,18 +33,19 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
+    --text: #e5e7eb;
+    --text-h: #f3811f;
+    --bg: #1a0a0c; /* Deep red-black bg */
+    --border: #b02e40;
+    --code-bg: #2a1518;
+    --accent: #f3811f;
+    --accent-bg: rgba(243, 129, 31, 0.2);
+    --accent-border: rgba(243, 129, 31, 0.5);
+    --social-bg: rgba(176, 46, 64, 0.2);
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
   }
+}
 
   #social .button-icon {
     filter: invert(1) brightness(2);
