@@ -15,10 +15,14 @@ export default function Documents() {
   const [content, setContent] = useState('');
   const [author, setAuthor] = useState('');
 
+  const fetchDocuments = async () => {
+    const res = await fetch('/api/documents');
+    const data = await res.json();
+    setDocuments(data as Document[]);
+  };
+
   useEffect(() => {
-    fetch('/api/documents')
-      .then(res => res.json())
-      .then(data => setDocuments(data as Document[]));
+    fetchDocuments();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,52 +37,50 @@ export default function Documents() {
       setContent('');
       setAuthor('');
       setShowForm(false);
-      // Refresh list
-      const updatedRes = await fetch('/api/documents');
-      const updatedData = await updatedRes.json();
-      setDocuments(updatedData as Document[]);
+      fetchDocuments();
     }
   };
 
   return (
     <div className="page-container">
-      <h1>Documents</h1>
-      <button onClick={() => setShowForm(!showForm)}>
-        {showForm ? 'Cancel' : 'Post Document'}
+      <h1>課題・資料</h1>
+      <button onClick={() => setShowForm(!showForm)} className="login-button" style={{ marginBottom: '2rem' }}>
+        {showForm ? 'キャンセル' : '新規投稿'}
       </button>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="post-form">
           <input 
             type="text" 
-            placeholder="Title" 
+            placeholder="タイトル" 
             value={title} 
             onChange={e => setTitle(e.target.value)} 
             required 
           />
           <input 
             type="text" 
-            placeholder="Author" 
+            placeholder="投稿者名" 
             value={author} 
             onChange={e => setAuthor(e.target.value)} 
             required 
           />
           <textarea 
-            placeholder="Content" 
+            placeholder="内容・説明" 
             value={content} 
             onChange={e => setContent(e.target.value)} 
             required 
+            rows={5}
           />
-          <button type="submit">Submit</button>
+          <button type="submit">投稿する</button>
         </form>
       )}
 
       <div className="list-container">
-        {documents.map(doc => (
+        {documents.length === 0 ? <p>投稿はまだありません。</p> : documents.map(doc => (
           <div key={doc.id} className="card">
             <h2>{doc.title}</h2>
-            <p className="meta">By {doc.author} on {new Date(doc.created_at).toLocaleDateString()}</p>
-            <p className="content">{doc.content}</p>
+            <p className="meta">{doc.author} · {new Date(doc.created_at).toLocaleDateString('ja-JP')}</p>
+            <div className="content" style={{ whiteSpace: 'pre-wrap' }}>{doc.content}</div>
           </div>
         ))}
       </div>

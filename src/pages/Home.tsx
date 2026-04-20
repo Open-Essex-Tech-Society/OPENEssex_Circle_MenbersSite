@@ -8,8 +8,8 @@ export default function Home() {
           <img src="/OpenEssex.png" alt="Open Essex Logo" className="brand-logo" />
         </div>
         <div>
-          <h1>Welcome to Open Essex</h1>
-          <p>The exclusive platform for knowledge sharing and community growth.</p>
+          <h1>Open Essex へようこそ</h1>
+          <p>ナレッジ共有とコミュニティの成長のための限定プラットフォーム。</p>
         </div>
       </section>
 
@@ -17,12 +17,12 @@ export default function Home() {
 
       <section id="next-steps">
         <div id="docs">
-          <h2>Member Sections</h2>
-          <p>Explore our exclusive content</p>
+          <h2>メンバー限定セクション</h2>
+          <p>限定コンテンツを探索しましょう</p>
           <ul className="member-nav-links">
-            <li><Link to="/documents" className="link-button">Document Portal</Link></li>
-            <li><Link to="/guides" className="link-button">Expert Guides</Link></li>
-            <li><Link to="/books" className="link-button">Book Club</Link></li>
+            <li><Link to="/documents" className="link-button">課題・資料ポータル</Link></li>
+            <li><Link to="/guides" className="link-button">エキスパートガイド</Link></li>
+            <li><Link to="/books" className="link-button">おすすめ本</Link></li>
           </ul>
         </div>
       </section>

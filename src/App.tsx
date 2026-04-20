@@ -11,8 +11,8 @@ function ProtectedRoute({ children, isLoggedIn }: { children: React.ReactNode, i
   if (!isLoggedIn) {
     return (
       <div className="page-container" style={{ textAlign: 'center' }}>
-        <h2>Members Only</h2>
-        <p>Please log in to access this section.</p>
+        <h2>メンバー限定コンテンツ</h2>
+        <p>このセクションにアクセスするにはログインが必要です。</p>
       </div>
     );
   }

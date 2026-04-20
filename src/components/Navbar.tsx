@@ -26,12 +26,12 @@ export default function Navbar({ isLoggedIn, onLoginToggle }: NavbarProps) {
         </Link>
       </div>
       <ul className="navbar-links">
-        <li><Link to="/documents">Documents</Link></li>
-        <li><Link to="/guides">Guides</Link></li>
-        <li><Link to="/books">Books</Link></li>
+        <li><Link to="/documents">課題・資料</Link></li>
+        <li><Link to="/guides">ガイド</Link></li>
+        <li><Link to="/books">おすすめ本</Link></li>
         <li>
           <button onClick={onLoginToggle} className="login-button">
-            {isLoggedIn ? 'Logout' : 'Member Login'}
+            {isLoggedIn ? 'ログアウト' : 'メンバーログイン'}
           </button>
         </li>
       </ul>

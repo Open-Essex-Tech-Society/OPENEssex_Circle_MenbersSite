@@ -9,22 +9,68 @@ interface Guide {
 
 export default function Guides() {
   const [guides, setGuides] = useState<Guide[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+
+  const fetchGuides = async () => {
+    const res = await fetch('/api/guides');
+    const data = await res.json();
+    setGuides(data as Guide[]);
+  };
 
   useEffect(() => {
-    fetch('/api/guides')
-      .then(res => res.json())
-      .then(data => setGuides(data as Guide[]));
+    fetchGuides();
   }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch('/api/guides', {
+      method: 'POST',
+      body: JSON.stringify({ title, content }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (res.ok) {
+      setTitle('');
+      setContent('');
+      setShowForm(false);
+      fetchGuides();
+    }
+  };
 
   return (
     <div className="page-container">
-      <h1>Guides</h1>
+      <h1>ガイド</h1>
+      <button onClick={() => setShowForm(!showForm)} className="login-button" style={{ marginBottom: '2rem' }}>
+        {showForm ? 'キャンセル' : 'ガイドを投稿する'}
+      </button>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="post-form">
+          <input 
+            type="text" 
+            placeholder="ガイドのタイトル" 
+            value={title} 
+            onChange={e => setTitle(e.target.value)} 
+            required 
+          />
+          <textarea 
+            placeholder="ガイドの内容" 
+            value={content} 
+            onChange={e => setContent(e.target.value)} 
+            required 
+            rows={10}
+          />
+          <button type="submit">ガイドを投稿する</button>
+        </form>
+      )}
+
       <div className="list-container">
-        {guides.length === 0 ? <p>No guides yet.</p> : guides.map(guide => (
+        {guides.length === 0 ? <p>ガイドはまだありません。</p> : guides.map(guide => (
           <div key={guide.id} className="card">
             <h2>{guide.title}</h2>
-            <p className="meta">Posted on {new Date(guide.created_at).toLocaleDateString()}</p>
-            <p className="content">{guide.content}</p>
+            <p className="meta">投稿日: {new Date(guide.created_at).toLocaleDateString('ja-JP')}</p>
+            <div className="content" style={{ whiteSpace: 'pre-wrap' }}>{guide.content}</div>
           </div>
         ))}
       </div>
