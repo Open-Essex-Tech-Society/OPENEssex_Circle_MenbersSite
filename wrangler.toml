@@ -2,7 +2,7 @@
 name = "open-essex-officialsite"
 pages_build_output_dir = "dist"
 
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "open-essex-db"
-# database_id = "your_d1_database_id_here" # Cloudflareダッシュボードで作成したIDを入れてください
+[[d1_databases]]
+binding = "DB"
+database_name = "open-essex-db"
+database_id = "your_d1_database_id_here"
