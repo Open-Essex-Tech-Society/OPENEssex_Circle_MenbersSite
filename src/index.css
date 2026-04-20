@@ -1,112 +1,100 @@
-:root {
-  --text: #4a4a4a;
-  --text-h: #b02e40; /* Brand Red for headings */
-  --bg: #fffdfa; /* Slightly yellowish white */
-  --border: #f3811f; /* Brand Orange for borders */
-  --code-bg: #fff5eb;
-  --accent: #f3811f; /* Brand Orange */
-  --accent-bg: rgba(243, 129, 31, 0.15);
-  --accent-border: rgba(243, 129, 31, 0.6);
-  --brand-red: #b02e40;
-  --social-bg: rgba(176, 46, 64, 0.05);
-  --shadow:
-    rgba(176, 46, 64, 0.1) 0 10px 15px -3px, rgba(176, 46, 64, 0.05) 0 4px 6px -2px;
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+:root {
+  --text: #2A1518;
+  --text-h: #8c1c2f;
+  --text-muted: #6b5558;
+  --brand-red: #b02e40;
+  --brand-orange: #f3811f;
+  
+  --bg-gradient: linear-gradient(135deg, #fef4f5 0%, #fff0e5 100%);
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-shadow: 0 8px 32px 0 rgba(176, 46, 64, 0.08);
+  
+  --code-bg: rgba(255, 255, 255, 0.5);
+  
+  --sans: 'Outfit', system-ui, -apple-system, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  font: 16px/1.6 var(--sans);
   color-scheme: light;
   color: var(--text);
-  background: var(--bg);
+  background: var(--bg-gradient);
+  background-attachment: fixed;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #e5e7eb;
-    --text-h: #f3811f;
-    --bg: #1a0a0c; /* Deep red-black bg */
-    --border: #b02e40;
-    --code-bg: #2a1518;
-    --accent: #f3811f;
-    --accent-bg: rgba(243, 129, 31, 0.2);
-    --accent-border: rgba(243, 129, 31, 0.5);
-    --social-bg: rgba(176, 46, 64, 0.2);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+    --text: #f5eAEA;
+    --text-h: #f9c2c9;
+    --text-muted: #b8a0a4;
+    
+    --bg-gradient: linear-gradient(135deg, #1f080b 0%, #2a1005 100%);
+    --glass-bg: rgba(40, 15, 20, 0.5);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    
+    --code-bg: rgba(0, 0, 0, 0.3);
   }
 }
 
+body {
+  margin: 0;
+  min-height: 100svh;
+}
+
 #root {
-  width: 1126px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
   text-align: center;
-  border-inline: 1px solid var(--border);
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
+h1, h2, h3 {
+  font-family: var(--sans);
+  font-weight: 600;
   color: var(--text-h);
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
+  font-size: 3.5rem;
+  letter-spacing: -0.02em;
+  margin: 2rem 0;
+  background: linear-gradient(135deg, var(--brand-red), var(--brand-orange));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+@media (max-width: 1024px) {
+  h1 {
+    font-size: 2.5rem;
+  }
+}
+
+h2 {
+  font-size: 1.8rem;
+  margin: 0 0 1rem;
+}
+
+p {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
 }
 
 code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
+  font-family: var(--mono);
+  font-size: 0.9em;
+  padding: 0.2em 0.4em;
+  border-radius: 6px;
   background: var(--code-bg);
+  color: var(--brand-red);
 }
