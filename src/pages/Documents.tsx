@@ -18,7 +18,7 @@ export default function Documents() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [author, setAuthor] = useState('');
-  
+
   const [editId, setEditId] = useState<number | null>(null);
 
   const fetchDocuments = async () => {
@@ -89,8 +89,8 @@ export default function Documents() {
   return (
     <div className="page-container">
       <h1>課題・資料</h1>
-      <p className="page-subtitle">課題や公開資料の共有ポータル</p>
-      
+      <p className="page-subtitle">課題や公開資料の共有</p>
+
       <button onClick={() => {
         setShowForm(!showForm);
         if (editId) { setEditId(null); setTitle(''); setContent(''); setAuthor(''); }
@@ -122,7 +122,7 @@ export default function Documents() {
             <div className="content" style={{ padding: '1rem 0' }}>
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{doc.content}</ReactMarkdown>
             </div>
-            
+
             <div className="timeline-actions">
               <button className="btn btn-like" onClick={() => handleLike(doc.id)}>
                 <span className="icon">♥</span> {doc.likes || 0}

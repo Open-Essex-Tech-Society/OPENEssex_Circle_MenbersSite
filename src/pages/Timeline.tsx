@@ -15,13 +15,13 @@ export default function Timeline() {
   const [items, setItems] = useState<TimelineItem[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const [type, setType] = useState('youtube');
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [author, setAuthor] = useState('');
-  
+
   const [editId, setEditId] = useState<number | null>(null);
 
   const fetchItems = async () => {
@@ -102,11 +102,11 @@ export default function Timeline() {
   return (
     <div className="page-container timeline-container">
       <h1>タイムライン</h1>
-      <p className="page-subtitle">YouTubeの動画やニュースを共有しましょう</p>
-      
+      <p className="page-subtitle">YouTubeの動画やニュースを共有</p>
+
       <button onClick={() => {
         setShowForm(!showForm);
-        if (editId) { setEditId(null); setUrl(''); setTitle(''); setDescription(''); setAuthor(''); setType('youtube');}
+        if (editId) { setEditId(null); setUrl(''); setTitle(''); setDescription(''); setAuthor(''); setType('youtube'); }
       }} className="btn btn-primary" style={{ marginBottom: '2rem' }}>
         {showForm ? 'キャンセル' : '新規共有'}
       </button>
@@ -121,12 +121,12 @@ export default function Timeline() {
             </select>
             {!editId && <input type="text" placeholder="投稿者名" value={author} onChange={e => setAuthor(e.target.value)} required className="input-field" />}
           </div>
-          
+
           <input type="url" placeholder="URL (例: https://youtube.com/... or https://...)" value={url} onChange={e => setUrl(e.target.value)} required className="input-field" />
           <input type="text" placeholder="タイトル" value={title} onChange={e => setTitle(e.target.value)} required className="input-field" />
-          
+
           <textarea placeholder="説明やコメント" value={description} onChange={e => setDescription(e.target.value)} rows={4} className="input-field" />
-          
+
           <button type="submit" disabled={isSubmitting} className="btn btn-submit">
             {isSubmitting ? '処理中...' : editId ? '変更を保存' : '共有する'}
           </button>
@@ -140,16 +140,16 @@ export default function Timeline() {
               <span className={`tag tag-${item.type}`}>{item.type === 'youtube' ? 'YouTube' : item.type === 'news' ? 'News' : 'Link'}</span>
               <span className="author-date">{item.author} · {new Date(item.created_at).toLocaleDateString('ja-JP')}</span>
             </div>
-            
+
             <h2 className="timeline-title">{item.title}</h2>
             {item.description && <p className="timeline-desc">{item.description}</p>}
 
             {item.type === 'youtube' && extractYoutubeId(item.url) ? (
               <div className="video-container">
-                <iframe 
-                  src={`https://www.youtube.com/embed/${extractYoutubeId(item.url)}`} 
-                  frameBorder="0" 
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                <iframe
+                  src={`https://www.youtube.com/embed/${extractYoutubeId(item.url)}`}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                   title={item.title}
                 ></iframe>
@@ -159,7 +159,7 @@ export default function Timeline() {
                 🔗 {item.url}
               </a>
             )}
-            
+
             <div className="timeline-actions">
               <button className="btn btn-like" onClick={() => handleLike(item.id)}>
                 <span className="icon">♥</span> {item.likes || 0}

@@ -84,8 +84,8 @@ export default function Guides() {
   return (
     <div className="page-container">
       <h1>ガイド</h1>
-      <p className="page-subtitle">コミュニティのエキスパートによる知識共有</p>
-      
+      <p className="page-subtitle">技術・知識共有</p>
+
       <button onClick={() => {
         setShowForm(!showForm);
         if (editId) { setEditId(null); setTitle(''); setContent(''); }
@@ -112,7 +112,7 @@ export default function Guides() {
             <div className="content" style={{ padding: '1rem 0' }}>
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{guide.content}</ReactMarkdown>
             </div>
-            
+
             <div className="timeline-actions">
               <button className="btn btn-like" onClick={() => handleLike(guide.id)}>
                 <span className="icon">♥</span> {guide.likes || 0}

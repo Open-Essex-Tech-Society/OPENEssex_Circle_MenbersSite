@@ -92,8 +92,8 @@ export default function Books() {
   return (
     <div className="page-container">
       <h1>おすすめ本</h1>
-      <p className="page-subtitle">メンバーが推薦する名著と必読書</p>
-      
+      <p className="page-subtitle">おすすめの本</p>
+
       <button onClick={() => {
         setShowForm(!showForm);
         if (editId) { setEditId(null); setTitle(''); setAuthor(''); setDescription(''); setLink(''); }
@@ -122,7 +122,7 @@ export default function Books() {
             <div className="content" style={{ padding: '1rem 0', marginBottom: '1rem' }}>
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{book.description}</ReactMarkdown>
             </div>
-            
+
             {book.link && (
               <a href={book.link} target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ display: 'inline-flex', fontSize: '0.9rem', padding: '0.6rem 1.2rem', marginBottom: '1rem' }}>
                 詳細を見る 🔗
