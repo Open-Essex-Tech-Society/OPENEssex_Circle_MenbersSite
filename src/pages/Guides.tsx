@@ -73,12 +73,17 @@ export default function Guides() {
   };
 
   const handleLike = async (id: number) => {
+    const likedKey = `liked_guides_${id}`;
+    if (localStorage.getItem(likedKey)) return;
+
+    setGuides(prev => prev.map(guide => guide.id === id ? { ...guide, likes: (guide.likes || 0) + 1 } : guide));
+    localStorage.setItem(likedKey, 'true');
+
     await fetch(`/api/guides/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ action: 'like' }),
       headers: { 'Content-Type': 'application/json' }
     });
-    fetchGuides();
   };
 
   return (
@@ -114,7 +119,7 @@ export default function Guides() {
             </div>
 
             <div className="timeline-actions">
-              <button className="btn btn-like" onClick={() => handleLike(guide.id)}>
+              <button className={`btn btn-like ${localStorage.getItem(`liked_guides_${guide.id}`) ? 'liked' : ''}`} onClick={() => handleLike(guide.id)}>
                 <span className="icon">♥</span> {guide.likes || 0}
               </button>
               <div className="spacer"></div>

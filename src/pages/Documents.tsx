@@ -78,12 +78,17 @@ export default function Documents() {
   };
 
   const handleLike = async (id: number) => {
+    const likedKey = `liked_documents_${id}`;
+    if (localStorage.getItem(likedKey)) return;
+
+    setDocuments(prev => prev.map(doc => doc.id === id ? { ...doc, likes: (doc.likes || 0) + 1 } : doc));
+    localStorage.setItem(likedKey, 'true');
+
     await fetch(`/api/documents/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ action: 'like' }),
       headers: { 'Content-Type': 'application/json' }
     });
-    fetchDocuments();
   };
 
   return (
@@ -124,7 +129,7 @@ export default function Documents() {
             </div>
 
             <div className="timeline-actions">
-              <button className="btn btn-like" onClick={() => handleLike(doc.id)}>
+              <button className={`btn btn-like ${localStorage.getItem(`liked_documents_${doc.id}`) ? 'liked' : ''}`} onClick={() => handleLike(doc.id)}>
                 <span className="icon">♥</span> {doc.likes || 0}
               </button>
               <div className="spacer"></div>

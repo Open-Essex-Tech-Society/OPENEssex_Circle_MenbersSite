@@ -81,12 +81,17 @@ export default function Books() {
   };
 
   const handleLike = async (id: number) => {
+    const likedKey = `liked_books_${id}`;
+    if (localStorage.getItem(likedKey)) return;
+
+    setBooks(prev => prev.map(book => book.id === id ? { ...book, likes: (book.likes || 0) + 1 } : book));
+    localStorage.setItem(likedKey, 'true');
+
     await fetch(`/api/books/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ action: 'like' }),
       headers: { 'Content-Type': 'application/json' }
     });
-    fetchBooks();
   };
 
   return (
@@ -130,7 +135,7 @@ export default function Books() {
             )}
 
             <div className="timeline-actions">
-              <button className="btn btn-like" onClick={() => handleLike(book.id)}>
+              <button className={`btn btn-like ${localStorage.getItem(`liked_books_${book.id}`) ? 'liked' : ''}`} onClick={() => handleLike(book.id)}>
                 <span className="icon">♥</span> {book.likes || 0}
               </button>
               <div className="spacer"></div>

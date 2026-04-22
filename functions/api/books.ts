@@ -5,7 +5,9 @@ interface Env {
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { DB } = context.env;
   const { results } = await DB.prepare("SELECT * FROM books ORDER BY created_at DESC").all();
-  return Response.json(results);
+  return Response.json(results, {
+    headers: { 'Cache-Control': 'public, max-age=10, s-maxage=30' }
+  });
 };
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {

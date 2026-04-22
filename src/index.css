@@ -639,6 +639,11 @@ code {
   background: var(--brand-red);
   color: white;
 }
+.btn-like.liked {
+  background: var(--brand-red);
+  color: white;
+  cursor: default;
+}
 .btn-edit { background: rgba(123, 99, 102, 0.1); color: var(--text); padding: 8px 16px; }
 .btn-edit:hover { background: rgba(123, 99, 102, 0.2); }
 .btn-delete { background: rgba(220, 53, 69, 0.1); color: #dc3545; padding: 8px 16px; }

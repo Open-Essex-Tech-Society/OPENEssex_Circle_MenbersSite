@@ -85,12 +85,17 @@ export default function Timeline() {
   };
 
   const handleLike = async (id: number) => {
+    const likedKey = `liked_timeline_${id}`;
+    if (localStorage.getItem(likedKey)) return;
+
+    setItems(prev => prev.map(item => item.id === id ? { ...item, likes: (item.likes || 0) + 1 } : item));
+    localStorage.setItem(likedKey, 'true');
+
     await fetch(`/api/timeline/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ action: 'like' }),
       headers: { 'Content-Type': 'application/json' }
     });
-    fetchItems();
   };
 
   const extractYoutubeId = (url: string) => {
@@ -161,7 +166,7 @@ export default function Timeline() {
             )}
 
             <div className="timeline-actions">
-              <button className="btn btn-like" onClick={() => handleLike(item.id)}>
+              <button className={`btn btn-like ${localStorage.getItem(`liked_timeline_${item.id}`) ? 'liked' : ''}`} onClick={() => handleLike(item.id)}>
                 <span className="icon">♥</span> {item.likes || 0}
               </button>
               <div className="spacer"></div>
