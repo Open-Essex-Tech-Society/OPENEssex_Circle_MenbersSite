@@ -52,7 +52,7 @@ export default function Members() {
   return (
     <div className="page-container">
       <h1>メンバー一覧</h1>
-      <p className="page-subtitle">Open Essexのメンバーたち（{members.length}人）</p>
+      <p className="page-subtitle">メンバー数（{members.length}人）</p>
 
       {isLoading ? (
         <p style={{ textAlign: 'center' }}>読み込み中...</p>

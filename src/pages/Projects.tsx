@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import AuthorBadge from '../components/AuthorBadge';
 
 interface ProjectItem {
   id: number;
@@ -135,7 +136,9 @@ export default function Projects() {
               <span className={`tag tag-${item.status}`}>
                 {item.status === 'planning' ? '企画中' : item.status === 'in-progress' ? '進行中' : '完了'}
               </span>
-              <span className="author-date">{item.author} · {new Date(item.created_at).toLocaleDateString('ja-JP')}</span>
+              <div style={{ marginLeft: 'auto' }}>
+                <AuthorBadge author={item.author} date={item.created_at} />
+              </div>
             </div>
 
             <h2 className="timeline-title">{item.title}</h2>

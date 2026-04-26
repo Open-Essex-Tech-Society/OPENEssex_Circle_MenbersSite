@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import AuthorBadge from '../components/AuthorBadge';
 
 interface Document {
   id: number;
@@ -120,9 +121,9 @@ export default function Documents() {
         {documents.length === 0 ? <p>投稿はまだありません。</p> : documents.map(doc => (
           <div key={doc.id} className="card glass-panel">
             <h2>{doc.title}</h2>
-            <p className="meta">
-              {doc.author} · {new Date(doc.created_at).toLocaleDateString('ja-JP')}
-            </p>
+            <div className="meta" style={{ marginBottom: '1rem' }}>
+              <AuthorBadge author={doc.author} date={doc.created_at} />
+            </div>
             <div className="content" style={{ padding: '1rem 0' }}>
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{doc.content}</ReactMarkdown>
             </div>

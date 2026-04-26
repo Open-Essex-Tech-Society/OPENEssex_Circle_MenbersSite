@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import AuthorBadge from '../components/AuthorBadge';
 
 interface TimelineItem {
   id: number;
@@ -11,6 +12,15 @@ interface TimelineItem {
   created_at: string;
   likes?: number;
 }
+
+const getFaviconUrl = (urlStr: string) => {
+  try {
+    const hostname = new URL(urlStr).hostname;
+    return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
+  } catch {
+    return '';
+  }
+};
 
 export default function Timeline() {
   const { userName } = useAuth();
@@ -142,7 +152,9 @@ export default function Timeline() {
           <div key={item.id} className="timeline-card glass-panel">
             <div className="timeline-header">
               <span className={`tag tag-${item.type}`}>{item.type === 'youtube' ? 'YouTube' : item.type === 'news' ? 'News' : 'Link'}</span>
-              <span className="author-date">{item.author} · {new Date(item.created_at).toLocaleDateString('ja-JP')}</span>
+              <div style={{ marginLeft: 'auto' }}>
+                <AuthorBadge author={item.author} date={item.created_at} />
+              </div>
             </div>
 
             <h2 className="timeline-title">{item.title}</h2>
@@ -159,8 +171,11 @@ export default function Timeline() {
                 ></iframe>
               </div>
             ) : (
-              <a href={item.url} target="_blank" rel="noopener noreferrer" className="link-preview">
-                🔗 {item.url}
+              <a href={item.url} target="_blank" rel="noopener noreferrer" className="link-preview-card">
+                {getFaviconUrl(item.url) && (
+                  <img src={getFaviconUrl(item.url)} alt="favicon" className="link-favicon" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                )}
+                <span className="link-url">{item.url}</span>
               </a>
             )}
 

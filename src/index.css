@@ -1303,3 +1303,74 @@ code {
     padding: 1.5rem;
   }
 }
+
+/* ========== Author Badge ========== */
+.author-badge-container {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.author-badge-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--glass-border);
+}
+.author-badge-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--brand-gradient);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+.author-badge-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.author-badge-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.author-badge-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ========== Link Preview Card ========== */
+.link-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text);
+  transition: all 0.3s ease;
+}
+.link-preview-card:hover {
+  border-color: var(--brand-red);
+  transform: translateY(-2px);
+}
+.link-favicon {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: contain;
+  background: white;
+  padding: 2px;
+}
+.link-url {
+  font-size: 0.9rem;
+  word-break: break-all;
+  opacity: 0.8;
+}
