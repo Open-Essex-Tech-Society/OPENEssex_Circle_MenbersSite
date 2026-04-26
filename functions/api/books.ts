@@ -14,12 +14,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { DB } = context.env;
   const data: any = await context.request.json();
   
-  if (!data.title || !data.description || !data.author) {
+  if (!data.title || !data.description || !data.author || !data.poster) {
     return new Response("Missing fields", { status: 400 });
   }
 
-  await DB.prepare("INSERT INTO books (title, description, author, link) VALUES (?, ?, ?, ?)")
-    .bind(data.title, data.description, data.author, data.link || null)
+  await DB.prepare("INSERT INTO books (title, description, author, link, poster) VALUES (?, ?, ?, ?, ?)")
+    .bind(data.title, data.description, data.author, data.link || null, data.poster)
     .run();
 
   return new Response("Success", { status: 201 });

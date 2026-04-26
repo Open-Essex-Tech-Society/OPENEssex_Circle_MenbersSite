@@ -14,12 +14,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { DB } = context.env;
   const data: any = await context.request.json();
   
-  if (!data.title || !data.content) {
+  if (!data.title || !data.content || !data.poster) {
     return new Response("Missing fields", { status: 400 });
   }
 
-  await DB.prepare("INSERT INTO guides (title, content) VALUES (?, ?)")
-    .bind(data.title, data.content)
+  await DB.prepare("INSERT INTO guides (title, content, poster) VALUES (?, ?, ?)")
+    .bind(data.title, data.content, data.poster)
     .run();
 
   return new Response("Success", { status: 201 });

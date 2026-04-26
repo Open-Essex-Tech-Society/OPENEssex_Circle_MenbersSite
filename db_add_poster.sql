@@ -1,0 +1,2 @@
+ALTER TABLE guides ADD COLUMN poster TEXT DEFAULT 'Unknown';
+ALTER TABLE books ADD COLUMN poster TEXT DEFAULT 'Unknown';

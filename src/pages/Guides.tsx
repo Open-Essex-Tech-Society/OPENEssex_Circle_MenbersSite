@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import AuthorBadge from '../components/AuthorBadge';
 
 interface Guide {
   id: number;
   title: string;
   content: string;
+  poster?: string;
   created_at: string;
   likes?: number;
 }
@@ -47,7 +49,7 @@ export default function Guides() {
       } else {
         const res = await fetch('/api/guides', {
           method: 'POST',
-          body: JSON.stringify({ title, content }),
+          body: JSON.stringify({ title, content, poster: userName }),
           headers: { 'Content-Type': 'application/json' }
         });
         if (res.ok) fetchGuides();
@@ -116,7 +118,9 @@ export default function Guides() {
         {guides.length === 0 ? <p>ガイドはまだありません。</p> : guides.map(guide => (
           <div key={guide.id} className="card glass-panel">
             <h2>{guide.title}</h2>
-            <p className="meta">投稿日: {new Date(guide.created_at).toLocaleDateString('ja-JP')}</p>
+            <div className="meta" style={{ marginBottom: '1rem' }}>
+              <AuthorBadge author={guide.poster || ''} date={guide.created_at} />
+            </div>
             <div className="content" style={{ padding: '1rem 0' }}>
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{guide.content}</ReactMarkdown>
             </div>
@@ -125,9 +129,13 @@ export default function Guides() {
               <button className={`btn btn-like ${localStorage.getItem(`liked_guides_${guide.id}`) ? 'liked' : ''}`} onClick={() => handleLike(guide.id)}>
                 <span className="icon">♥</span> {guide.likes || 0}
               </button>
-              <div className="spacer"></div>
-              <button className="btn btn-edit" onClick={() => handleEdit(guide)}>編集</button>
-              <button className="btn btn-delete" onClick={() => handleDelete(guide.id)}>削除</button>
+              {(!guide.poster || userName === guide.poster) && (
+                <>
+                  <div className="spacer"></div>
+                  <button className="btn btn-edit" onClick={() => handleEdit(guide)}>編集</button>
+                  <button className="btn btn-delete" onClick={() => handleDelete(guide.id)}>削除</button>
+                </>
+              )}
             </div>
           </div>
         ))}

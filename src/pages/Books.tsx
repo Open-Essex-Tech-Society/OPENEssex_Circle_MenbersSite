@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import AuthorBadge from '../components/AuthorBadge';
 
 interface Book {
   id: number;
   title: string;
   author: string;
   description: string;
-  link: string;
+  poster?: string;
+  link?: string;
   created_at: string;
   likes?: number;
 }
@@ -51,7 +53,7 @@ export default function Books() {
       } else {
         const res = await fetch('/api/books', {
           method: 'POST',
-          body: JSON.stringify({ title, author: bookAuthor, description, link }),
+          body: JSON.stringify({ title, author: bookAuthor, description, link, poster: userName }),
           headers: { 'Content-Type': 'application/json' }
         });
         if (res.ok) fetchBooks();
@@ -126,7 +128,11 @@ export default function Books() {
         {books.length === 0 ? <p>推薦された本はまだありません。</p> : books.map(book => (
           <div key={book.id} className="card glass-panel">
             <h2>{book.title}</h2>
-            <p className="meta">著者: {book.author}</p>
+            <p className="meta" style={{ marginBottom: '0.5rem' }}>著者: {book.author}</p>
+            <div className="meta" style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>推薦者:</span>
+               <AuthorBadge author={book.poster || ''} date={book.created_at} />
+            </div>
             <div className="content" style={{ padding: '1rem 0', marginBottom: '1rem' }}>
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{book.description}</ReactMarkdown>
             </div>
@@ -141,9 +147,13 @@ export default function Books() {
               <button className={`btn btn-like ${localStorage.getItem(`liked_books_${book.id}`) ? 'liked' : ''}`} onClick={() => handleLike(book.id)}>
                 <span className="icon">♥</span> {book.likes || 0}
               </button>
-              <div className="spacer"></div>
-              <button className="btn btn-edit" onClick={() => handleEdit(book)}>編集</button>
-              <button className="btn btn-delete" onClick={() => handleDelete(book.id)}>削除</button>
+              {(!book.poster || userName === book.poster) && (
+                <>
+                  <div className="spacer"></div>
+                  <button className="btn btn-edit" onClick={() => handleEdit(book)}>編集</button>
+                  <button className="btn btn-delete" onClick={() => handleDelete(book.id)}>削除</button>
+                </>
+              )}
             </div>
           </div>
         ))}
