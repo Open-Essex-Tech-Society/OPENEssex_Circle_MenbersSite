@@ -1089,6 +1089,24 @@ code {
 .mypage-container {
   max-width: 700px;
 }
+.avatar-upload-area {
+  margin-bottom: 0.8rem;
+}
+.avatar-file-btn {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+.avatar-file-btn:hover {
+  background: rgba(217, 37, 67, 0.1);
+  border-color: var(--brand-red);
+  color: var(--brand-red);
+}
 .mypage-welcome {
   padding: 1.5rem 2rem;
   margin-bottom: 2rem;

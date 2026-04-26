@@ -139,15 +139,63 @@ export default function MyPage() {
               )}
             </div>
             <div className="mypage-avatar-input">
-              <label>アイコンURL</label>
+              <label>アイコン画像</label>
+              <div className="avatar-upload-area">
+                <label htmlFor="avatar-file" className="btn outline-btn avatar-file-btn">
+                  📁 ファイルから選択
+                </label>
+                <input
+                  id="avatar-file"
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 500 * 1024) {
+                      alert('画像サイズは500KB以下にしてください。');
+                      return;
+                    }
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      // Resize image to save space
+                      const img = new Image();
+                      img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const maxSize = 200;
+                        let w = img.width, h = img.height;
+                        if (w > h) { h = (h / w) * maxSize; w = maxSize; }
+                        else { w = (w / h) * maxSize; h = maxSize; }
+                        canvas.width = w;
+                        canvas.height = h;
+                        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+                        const dataUrl = canvas.toDataURL('image/webp', 0.8);
+                        updateField('avatar_url', dataUrl);
+                      };
+                      img.src = reader.result as string;
+                    };
+                    reader.readAsDataURL(file);
+                  }}
+                />
+              </div>
+              <p className="field-hint">または画像URLを直接入力：</p>
               <input
-                type="url"
+                type="text"
                 placeholder="https://example.com/avatar.png"
-                value={form.avatar_url}
+                value={form.avatar_url.startsWith('data:') ? '' : form.avatar_url}
                 onChange={e => updateField('avatar_url', e.target.value)}
                 className="input-field"
               />
-              <p className="field-hint">Gravatar、GitHub、Googleなどのプロフィール画像URLを貼り付けてください</p>
+              {form.avatar_url && (
+                <button
+                  type="button"
+                  className="btn btn-delete"
+                  style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}
+                  onClick={() => updateField('avatar_url', '')}
+                >
+                  アイコンを削除
+                </button>
+              )}
             </div>
           </div>
 
