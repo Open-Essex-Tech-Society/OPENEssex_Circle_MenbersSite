@@ -50,7 +50,7 @@ export default function Home() {
             </div>
             <div className="feature-content">
               <h3 className="feature-title">企画セクション</h3>
-              <p className="feature-desc">新しい企画を提案・共有して、みんなで実現しよう</p>
+              <p className="feature-desc">新しい企画の提案・共有</p>
               <span className="feature-action">提案する →</span>
             </div>
           </Link>
@@ -83,7 +83,7 @@ export default function Home() {
             </div>
             <div className="feature-content">
               <h3 className="feature-title">メンバー一覧</h3>
-              <p className="feature-desc">Open Essexのメンバーを見て繋がろう</p>
+              <p className="feature-desc">Open Essexのメンバー一覧</p>
               <span className="feature-action">見てみる →</span>
             </div>
           </Link>

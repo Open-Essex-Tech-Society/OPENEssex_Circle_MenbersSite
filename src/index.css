@@ -126,6 +126,8 @@ body {
 }
 .user-profile img {
   width: 32px;
+  height: 32px;
+  object-fit: cover;
   border-radius: 50%;
   border: 2px solid var(--brand-orange);
 }

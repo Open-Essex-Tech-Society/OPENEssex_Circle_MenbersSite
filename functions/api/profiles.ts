@@ -6,9 +6,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { DB } = context.env;
   // Only fetch fields needed for the list view (exclude heavy avatar_url for list)
   const { results } = await DB.prepare(
-    `SELECT uid, display_name,
-       CASE WHEN length(avatar_url) > 200 THEN '' ELSE avatar_url END as avatar_url,
-       bio, role, skills, created_at
+    `SELECT uid, display_name, avatar_url, bio, role, skills, created_at
      FROM profiles ORDER BY created_at ASC`
   ).all();
   return Response.json(results, {
