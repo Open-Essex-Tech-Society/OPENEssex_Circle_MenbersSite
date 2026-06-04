@@ -55,6 +55,7 @@ export default function Navbar() {
           <li><Link to="/guides">ガイド</Link></li>
           <li><Link to="/books">おすすめ本</Link></li>
           <li><Link to="/members">メンバー</Link></li>
+          <li><Link to="/face-auth" style={{color: '#22d3ee', fontWeight: 'bold'}}>顔認証 (New!)</Link></li>
         </ul>
       </div>
       <div className="navbar-auth">

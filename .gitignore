@@ -28,3 +28,9 @@ dist-ssr
 .dev.vars
 
 wlangler.toml
+
+# Face Auth Service
+__pycache__/
+*.pyc
+face_auth_service/face_auth.db
+*.onnx

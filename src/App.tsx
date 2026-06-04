@@ -13,6 +13,7 @@ import Login from './pages/Login';
 import Members from './pages/Members';
 import Profile from './pages/Profile';
 import MyPage from './pages/MyPage';
+import FaceScanner from './pages/FaceScanner';
 import Calendar from './pages/Calendar';
 import './App.css';
 
@@ -42,6 +43,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/face-auth" element={<ProtectedRoute><FaceScanner /></ProtectedRoute>} />
       <Route path="/members" element={<ProtectedRoute><Members /></ProtectedRoute>} />
       <Route path="/profile/:uid" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/mypage" element={<ProtectedRoute><MyPage /></ProtectedRoute>} />
