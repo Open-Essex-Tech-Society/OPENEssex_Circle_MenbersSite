@@ -13,7 +13,7 @@ import type { RoomPublication, LocalRoomMember } from '@skyway-sdk/room';
 import { Mic, MicOff, Video, VideoOff, LogOut, Settings, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
-import { nowInSec, SkyWayAuthToken, uuidV4 } from '@skyway-sdk/token';
+import { createSkyWayToken } from '../lib/skyway-token';
 
 const APP_ID = import.meta.env.VITE_SKYWAY_APP_ID;
 const SECRET_KEY = import.meta.env.VITE_SKYWAY_SECRET_KEY || import.meta.env.VITE_SKYWAY_API_KEY;
@@ -117,48 +117,7 @@ export default function Meeting() {
     setIsLoading(true);
     try {
       // トークンを生成
-      const token = new SkyWayAuthToken({
-        jti: uuidV4(),
-        iat: nowInSec(),
-        exp: nowInSec() + 60 * 60 * 24,
-        scope: {
-          app: {
-            id: APP_ID,
-            turn: true,
-            actions: ['read'],
-            channels: [
-              {
-                id: '*',
-                name: '*',
-                actions: ['write'],
-                members: [
-                  {
-                    id: '*',
-                    name: '*',
-                    actions: ['write'],
-                    publication: {
-                      actions: ['write'],
-                    },
-                    subscription: {
-                      actions: ['write'],
-                    },
-                  },
-                ],
-                sfuBots: [
-                  {
-                    actions: ['write'],
-                    forwardings: [
-                      {
-                        actions: ['write'],
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        },
-      }).encode(SECRET_KEY);
+      const token = createSkyWayToken(roomName);
 
       const context = await SkyWayContext.Create(token);
       contextRef.current = context;
