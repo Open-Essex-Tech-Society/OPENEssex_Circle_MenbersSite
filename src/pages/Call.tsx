@@ -50,8 +50,7 @@ export default function Call() {
   const localVideoTrackRef = useRef<LocalVideoStream | null>(null);
   const localAudioTrackRef = useRef<LocalAudioStream | null>(null);
 
-  // Guard: prevent double-call in React StrictMode or fast navigation
-  const didJoinRef = useRef(false);
+  // Guard: prevent fast navigation race condition
   const isCleanedUpRef = useRef(false);
 
   // ---- Cleanup ----
@@ -94,14 +93,15 @@ export default function Call() {
   // ---- Main join logic ----
   useEffect(() => {
     if (!user || !roomName) return;
-    if (didJoinRef.current) return;
-    didJoinRef.current = true;
+    
+    let isMounted = true;
     isCleanedUpRef.current = false;
 
     (async () => {
       setIsConnecting(true);
 
       if (!APP_ID || !SECRET_KEY) {
+        if (!isMounted) return;
         toast.error('SkyWayの認証情報が .env に設定されていません');
         navigate('/members');
         return;
@@ -113,6 +113,7 @@ export default function Call() {
 
         // 2. Context
         const ctx = await SkyWayContext.Create(token);
+        if (!isMounted) return ctx.dispose();
         contextRef.current = ctx;
 
         // 3. Room (p2p for 1-on-1)
@@ -126,6 +127,7 @@ export default function Call() {
         const member = await room.join({
           name: userName || user.email || 'User',
         });
+        if (!isMounted) return member.leave();
         memberRef.current = member;
 
         // 5. Local media
@@ -139,9 +141,9 @@ export default function Call() {
         } catch {
           try {
             audioStream = await SkyWayStreamFactory.createMicrophoneAudioStream();
-            toast('カメラへのアクセスが拒否されました。音声のみで参加します');
+            if (isMounted) toast('カメラへのアクセスが拒否されました。音声のみで参加します');
           } catch {
-            toast.error('マイクへのアクセスが拒否されました');
+            if (isMounted) toast.error('マイクへのアクセスが拒否されました');
           }
         }
 
@@ -152,17 +154,17 @@ export default function Call() {
             localVideoRef.current.play().catch(() => {});
           }
           videoPubRef.current = await member.publish(videoStream);
-          setIsCamOn(true);
+          if (isMounted) setIsCamOn(true);
         } else {
-          setIsCamOn(false);
+          if (isMounted) setIsCamOn(false);
         }
 
         if (audioStream) {
           localAudioTrackRef.current = audioStream;
           audioPubRef.current = await member.publish(audioStream);
-          setIsMicOn(true);
+          if (isMounted) setIsMicOn(true);
         } else {
-          setIsMicOn(false);
+          if (isMounted) setIsMicOn(false);
         }
 
         // 6. Subscribe to remote publications
@@ -171,6 +173,7 @@ export default function Call() {
 
           try {
             const { stream } = await member.subscribe(pub.id);
+            if (!isMounted) return;
             setRemote((prev) => {
               const base: RemoteParticipant = prev ?? { memberName: pub.publisher.name || '相手' };
               if (stream.contentType === 'video') return { ...base, video: stream as RemoteVideoStream };
@@ -192,17 +195,20 @@ export default function Call() {
 
         // Handle partner leaving
         room.onMemberLeft.add(({ member: left }) => {
-          if (left.id !== member.id) {
+          if (left.id !== member.id && isMounted) {
             toast('相手が退出しました');
             handleHangup();
           }
         });
 
-        setJoined(true);
-        setIsConnecting(false);
+        if (isMounted) {
+          setJoined(true);
+          setIsConnecting(false);
+        }
 
       } catch (err: any) {
         console.error('Call join error:', err);
+        if (!isMounted) return;
         const msg = err?.message || String(err);
         toast.error('接続失敗: ' + msg);
         await cleanup();
@@ -212,6 +218,7 @@ export default function Call() {
 
     // Cleanup on unmount
     return () => {
+      isMounted = false;
       cleanup();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
