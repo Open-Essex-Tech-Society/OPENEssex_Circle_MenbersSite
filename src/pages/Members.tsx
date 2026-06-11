@@ -68,9 +68,15 @@ export default function Members() {
         }),
       });
       const data = await res.json();
-      setRingingCallId(data.id);
-    } catch (err) {
-      toast.error('通話の開始に失敗しました');
+      if (res.ok && data && data.id) {
+        setRingingCallId(data.id);
+      } else {
+        const errorMsg = data.error || 'Unknown error';
+        throw new Error(errorMsg);
+      }
+    } catch (err: any) {
+      console.error('startCall failed:', err);
+      toast.error(`通話の開始に失敗しました: ${err.message}`);
     }
   };
 

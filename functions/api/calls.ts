@@ -34,30 +34,38 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { DB } = context.env;
-  const data: any = await context.request.json();
-  const { action, caller_uid, caller_name, target_uid, room_name, call_id, status } = data;
+  try {
+    const data: any = await context.request.json();
+    const { action, caller_uid, caller_name, target_uid, room_name, call_id, status } = data;
 
-  if (action === "start") {
-    // Remove any existing calls from this caller first to avoid duplicates
-    await DB.prepare("DELETE FROM call_notifications WHERE caller_uid = ?").bind(caller_uid).run();
-    
-    const result = await DB.prepare(
-      "INSERT INTO call_notifications (caller_uid, caller_name, target_uid, room_name, status) VALUES (?, ?, ?, ?, 'ringing') RETURNING id"
-    ).bind(caller_uid, caller_name, target_uid, room_name).first();
-    return Response.json(result);
+    if (action === "start") {
+      // Remove any existing calls from this caller first to avoid duplicates
+      await DB.prepare("DELETE FROM call_notifications WHERE caller_uid = ?").bind(caller_uid).run();
+      
+      const result = await DB.prepare(
+        "INSERT INTO call_notifications (caller_uid, caller_name, target_uid, room_name, status) VALUES (?, ?, ?, ?, 'ringing') RETURNING id"
+      ).bind(caller_uid, caller_name, target_uid, room_name).first();
+      return Response.json(result);
+    }
+
+    if (action === "update") {
+      await DB.prepare(
+        "UPDATE call_notifications SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+      ).bind(status, call_id).run();
+      return new Response("OK");
+    }
+
+    if (action === "cancel") {
+      await DB.prepare("DELETE FROM call_notifications WHERE id = ?").bind(call_id).run();
+      return new Response("OK");
+    }
+
+    return new Response("Invalid action", { status: 400 });
+  } catch (err: any) {
+    console.error("Calls API Error:", err);
+    return new Response(JSON.stringify({ error: err.message }), { 
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
-
-  if (action === "update") {
-    await DB.prepare(
-      "UPDATE call_notifications SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
-    ).bind(status, call_id).run();
-    return new Response("OK");
-  }
-
-  if (action === "cancel") {
-    await DB.prepare("DELETE FROM call_notifications WHERE id = ?").bind(call_id).run();
-    return new Response("OK");
-  }
-
-  return new Response("Invalid action", { status: 400 });
 };
