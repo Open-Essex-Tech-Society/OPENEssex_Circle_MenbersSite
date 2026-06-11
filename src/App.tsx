@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { auth } from './firebase';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { CallProvider, useCall } from './contexts/CallContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -17,6 +18,7 @@ import FaceScanner from './pages/FaceScanner';
 import Calendar from './pages/Calendar';
 import Meeting from './pages/Meeting';
 import IncomingCallOverlay from './components/IncomingCallOverlay';
+import { PhoneOff } from 'lucide-react';
 import './App.css';
 
 function ErrorBoundary({ children }: { children: React.ReactNode }) {
@@ -30,7 +32,6 @@ function ErrorBoundary({ children }: { children: React.ReactNode }) {
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
-  // If Firebase is not configured (dev/local mode), bypass auth and show the page
   const isAuthDisabled = !auth;
   if (isAuthDisabled) return <>{children}</>;
   if (isLoading) return <div className="page-container"><p>認証状態を確認中...</p></div>;
@@ -40,7 +41,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   const { user } = useAuth();
-
   return (
     <Routes>
       <Route path="/" element={<Home />} />
@@ -61,25 +61,55 @@ function AppRoutes() {
 }
 
 function AppContent() {
+  const { ringingCallId, ringingTargetName, cancelCall } = useCall();
+
   return (
-    <Router>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
       <IncomingCallOverlay />
-      <main>
+      
+      {/* Global Ringing Overlay for Caller */}
+      {ringingCallId && (
+        <div className="call-overlay">
+          <div className="call-card glass-panel animate-in fade-in zoom-in">
+            <div className="call-avatar-container">
+              <div className="call-avatar-placeholder">
+                {ringingTargetName.charAt(0).toUpperCase()}
+              </div>
+              <div className="ringing-animation outgoing"></div>
+            </div>
+            
+            <h2 className="call-title">呼び出し中</h2>
+            <p className="caller-name">{ringingTargetName}</p>
+            
+            <div className="call-actions">
+              <button className="call-btn-circle decline" onClick={cancelCall} title="キャンセル">
+                <PhoneOff size={24} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <main style={{ flex: 1 }}>
         <ErrorBoundary>
           <AppRoutes />
         </ErrorBoundary>
       </main>
       <Footer />
-    </Router>
+    </div>
   );
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <CallProvider>
+          <AppContent />
+        </CallProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

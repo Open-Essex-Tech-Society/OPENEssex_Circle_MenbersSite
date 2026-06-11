@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { Video, PhoneOff } from "lucide-react";
-import { toast } from "react-hot-toast";
+import { useCall } from "../contexts/CallContext";
+import { Video } from "lucide-react";
 
 interface MemberProfile {
   uid: string;
@@ -41,91 +41,15 @@ const isExecutive = (role: string) => {
 };
 
 export default function Members() {
-  const { user, userName } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { startCall } = useCall();
   const [members, setMembers] = useState<MemberProfile[]>([]);
-  const [ringingCallId, setRingingCallId] = useState<number | null>(null);
-  const [ringingTargetName, setRingingTargetName] = useState("");
 
-  const startCall = async (e: React.MouseEvent, target: MemberProfile) => {
+  const handleStartCall = (e: React.MouseEvent, member: MemberProfile) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) return;
-    
-    const roomName = `call_${[user.uid, target.uid].sort().join("_")}`;
-    setRingingTargetName(target.display_name);
-
-    try {
-      const res = await fetch('/api/calls', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'start',
-          caller_uid: user.uid,
-          caller_name: userName || 'User',
-          target_uid: target.uid,
-          room_name: roomName
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data && data.id) {
-        setRingingCallId(data.id);
-      } else {
-        const errorMsg = data.error || 'Unknown error';
-        throw new Error(errorMsg);
-      }
-    } catch (err: any) {
-      console.error('startCall failed:', err);
-      toast.error(`通話の開始に失敗しました: ${err.message}`);
-    }
+    startCall(member.uid, member.display_name);
   };
-
-  const cancelCall = async () => {
-    if (ringingCallId) {
-      fetch('/api/calls', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'cancel',
-          call_id: ringingCallId
-        }),
-      }).catch(console.error);
-    }
-    setRingingCallId(null);
-    setRingingTargetName("");
-  };
-
-  // Poll for call status when ringing
-  useEffect(() => {
-    if (!ringingCallId) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/calls?caller_uid=${user?.uid}`);
-        const data = await res.json();
-        
-        // Find the specific call we are tracking
-        const currentCall = data.find((c: any) => c.id === ringingCallId);
-        
-        if (currentCall) {
-          if (currentCall.status === 'accepted') {
-            clearInterval(interval);
-            setRingingCallId(null);
-            navigate(`/meeting?room=${currentCall.room_name}`);
-          } else if (currentCall.status === 'rejected') {
-            clearInterval(interval);
-            toast.error(`${ringingTargetName} さんに拒否されました`);
-            setRingingCallId(null);
-            setRingingTargetName("");
-          }
-        }
-      } catch (err) {
-        console.error('Failed to poll call status:', err);
-      }
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [ringingCallId, user, ringingTargetName]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isCTO, setIsCTO] = useState(false);
@@ -319,7 +243,7 @@ export default function Members() {
                 )}
                 {user && member.uid !== user.uid && (
                   <button
-                    onClick={(e) => startCall(e, member)}
+                    onClick={(e) => handleStartCall(e, member)}
                     className="call-btn"
                     title="1-on-1通話を開始"
                   >
@@ -331,29 +255,6 @@ export default function Members() {
               </div>
             </Link>
           ))}
-        </div>
-      )}
-
-      {/* Ringing Overlay for Caller */}
-      {ringingCallId && (
-        <div className="call-overlay">
-          <div className="call-card glass-panel animate-in fade-in zoom-in">
-            <div className="call-avatar-container">
-              <div className="call-avatar-placeholder">
-                {ringingTargetName.charAt(0).toUpperCase()}
-              </div>
-              <div className="ringing-animation outgoing"></div>
-            </div>
-            
-            <h2 className="call-title">呼び出し中</h2>
-            <p className="caller-name">{ringingTargetName}</p>
-            
-            <div className="call-actions">
-              <button className="call-btn-circle decline" onClick={cancelCall} title="キャンセル">
-                <PhoneOff size={24} />
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
