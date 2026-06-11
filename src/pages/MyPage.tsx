@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { Shield } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface ProfileForm {
   display_name: string;
@@ -154,6 +156,19 @@ export default function MyPage() {
       )}
 
       <form onSubmit={handleSave} className="mypage-form">
+        <div className="mypage-section glass-panel">
+          <h3>セキュリティ</h3>
+          <div className="form-group">
+            <p className="field-hint">
+              顔認証を登録すると、より安全にサイトを利用できます。
+            </p>
+            <Link to="/face-auth" className="btn outline-btn" style={{ marginTop: '0.8rem', color: '#22d3ee', borderColor: '#22d3ee' }}>
+              <Shield size={18} style={{ marginRight: '8px' }} />
+              顔認証を登録・更新する
+            </Link>
+          </div>
+        </div>
+
         <div className="mypage-section glass-panel">
           <h3>基本情報</h3>
 

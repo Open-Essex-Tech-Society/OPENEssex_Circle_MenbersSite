@@ -15,6 +15,7 @@ import Profile from './pages/Profile';
 import MyPage from './pages/MyPage';
 import FaceScanner from './pages/FaceScanner';
 import Calendar from './pages/Calendar';
+import Meeting from './pages/Meeting';
 import './App.css';
 
 function ErrorBoundary({ children }: { children: React.ReactNode }) {
@@ -53,6 +54,7 @@ function AppRoutes() {
       <Route path="/timeline" element={<ProtectedRoute><Timeline /></ProtectedRoute>} />
       <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
       <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
+      <Route path="/meeting" element={<ProtectedRoute><Meeting /></ProtectedRoute>} />
     </Routes>
   );
 }

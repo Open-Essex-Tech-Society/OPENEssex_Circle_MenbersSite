@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -7,6 +7,7 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
+import { Shield } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -108,6 +109,13 @@ export default function Login() {
           </svg>
           Googleでログイン
         </button>
+
+        {!isRegister && (
+          <Link to="/face-auth" className="btn outline-btn" style={{ width: '100%', marginTop: '1rem', color: '#22d3ee', borderColor: '#22d3ee' }}>
+            <Shield size={20} style={{ marginRight: '8px' }} />
+            顔認証でログイン
+          </Link>
+        )}
 
         <div className="login-divider">
           <span>または</span>
