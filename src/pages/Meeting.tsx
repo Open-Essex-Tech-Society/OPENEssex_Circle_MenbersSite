@@ -481,10 +481,13 @@ export default function Meeting() {
         }
         .meeting-grid {
           flex: 1;
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          display: flex;
+          flex-wrap: wrap;
+          align-content: center;
+          justify-content: center;
           gap: 1.5rem;
           overflow-y: auto;
+          overflow-x: hidden;
           padding: 0.5rem;
         }
         .video-card {
@@ -496,6 +499,9 @@ export default function Meeting() {
           display: flex;
           align-items: center;
           justify-content: center;
+          flex: 1 1 300px;
+          max-width: 800px;
+          max-height: calc(100vh - 350px);
         }
         .remote-video {
           width: 100%;
@@ -506,6 +512,17 @@ export default function Meeting() {
           display: flex;
           align-items: center;
           justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+        .user-avatar-placeholder {
+          background: var(--brand-gradient, linear-gradient(135deg, #ff4766 0%, #ff8e52 100%));
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
         }
         .user-avatar-placeholder.large {
           width: 80px;
