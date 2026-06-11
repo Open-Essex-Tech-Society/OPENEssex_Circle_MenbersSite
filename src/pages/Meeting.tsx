@@ -13,8 +13,10 @@ import type { RoomPublication, LocalRoomMember } from '@skyway-sdk/room';
 import { Mic, MicOff, Video, VideoOff, LogOut, Settings, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
+import { nowInSec, SkyWayAuthToken, uuidV4 } from '@skyway-sdk/token';
 
-const API_KEY = import.meta.env.VITE_SKYWAY_API_KEY;
+const APP_ID = import.meta.env.VITE_SKYWAY_APP_ID;
+const SECRET_KEY = import.meta.env.VITE_SKYWAY_SECRET_KEY || import.meta.env.VITE_SKYWAY_API_KEY;
 
 export default function Meeting() {
   const { user, userName } = useAuth();
@@ -95,8 +97,8 @@ export default function Meeting() {
   }, [user, location.search]);
 
   const joinRoom = async () => {
-    if (!API_KEY) {
-      toast.error('SkyWay API Key is not set in environment variables.');
+    if (!APP_ID || !SECRET_KEY) {
+      toast.error('SkyWayの APP_ID または SECRET_KEY が設定されていません。(.envを確認してください)');
       return;
     }
     if (!roomName) {
@@ -106,11 +108,55 @@ export default function Meeting() {
 
     setIsLoading(true);
     try {
-      const context = await SkyWayContext.Create(API_KEY);
+      // トークンを生成
+      const token = new SkyWayAuthToken({
+        jti: uuidV4(),
+        iat: nowInSec(),
+        exp: nowInSec() + 60 * 60 * 24,
+        scope: {
+          app: {
+            id: APP_ID,
+            turn: true,
+            actions: ['read'],
+            channels: [
+              {
+                id: '*',
+                name: '*',
+                actions: ['write'],
+                members: [
+                  {
+                    id: '*',
+                    name: '*',
+                    actions: ['write'],
+                    publication: {
+                      actions: ['write'],
+                    },
+                    subscription: {
+                      actions: ['write'],
+                    },
+                  },
+                ],
+                sfuBots: [
+                  {
+                    actions: ['write'],
+                    forwardings: [
+                      {
+                        actions: ['write'],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      }).encode(SECRET_KEY);
+
+      const context = await SkyWayContext.Create(token);
       contextRef.current = context;
 
       const room = await SkyWayRoom.FindOrCreate(context, {
-        type: 'p2p',
+        type: 'sfu', // 多人数の音声・ビデオ通話（Discord風）にはSFUが適しています
         name: roomName,
       });
       roomRef.current = room;
