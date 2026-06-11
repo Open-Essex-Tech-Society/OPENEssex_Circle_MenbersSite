@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { Video, PhoneOff, Loader2 } from "lucide-react";
+import { Video, PhoneOff } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 interface MemberProfile {
