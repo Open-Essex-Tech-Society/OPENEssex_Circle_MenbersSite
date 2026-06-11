@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { Video } from "lucide-react";
 
 interface MemberProfile {
   uid: string;
@@ -32,7 +33,17 @@ const isExecutive = (role: string) => {
 
 export default function Members() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [members, setMembers] = useState<MemberProfile[]>([]);
+
+  const startCall = (e: React.MouseEvent, targetUid: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) return;
+    const roomName = `call_${[user.uid, targetUid].sort().join("_")}`;
+    navigate(`/meeting?room=${roomName}`);
+  };
+
   const [isLoading, setIsLoading] = useState(true);
   const [isCTO, setIsCTO] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
@@ -213,6 +224,16 @@ export default function Members() {
                         </span>
                       ))}
                   </div>
+                )}
+                {user && member.uid !== user.uid && (
+                  <button
+                    onClick={(e) => startCall(e, member.uid)}
+                    className="call-btn"
+                    title="1-on-1通話を開始"
+                  >
+                    <Video size={18} />
+                    <span>Call</span>
+                  </button>
                 )}
                 <span className="member-row-arrow">→</span>
               </div>

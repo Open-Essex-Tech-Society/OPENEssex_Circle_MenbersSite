@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   SkyWayContext, 
   SkyWayRoom, 
@@ -17,7 +18,11 @@ const API_KEY = import.meta.env.VITE_SKYWAY_API_KEY;
 
 export default function Meeting() {
   const { user, userName } = useAuth();
-  const [roomName, setRoomName] = useState('open-essex-room');
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const initialRoom = queryParams.get('room') || 'open-essex-room';
+  
+  const [roomName, setRoomName] = useState(initialRoom);
   const [joined, setJoined] = useState(false);
   const [, setLocalVideoTrack] = useState<LocalVideoStream | null>(null);
   const [, setLocalAudioTrack] = useState<LocalAudioStream | null>(null);
@@ -39,6 +44,13 @@ export default function Meeting() {
       leaveRoom();
     };
   }, []);
+
+  // Auto-join if room is in URL
+  useEffect(() => {
+    if (queryParams.has('room') && user && !joined && !isLoading) {
+      joinRoom();
+    }
+  }, [user, location.search]);
 
   const joinRoom = async () => {
     if (!API_KEY) {
