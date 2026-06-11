@@ -4,28 +4,39 @@ interface Env {
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { DB } = context.env;
-  const { results } = await DB.prepare(
-    `SELECT uid, display_name, avatar_url, bio, role, skills, created_at, last_seen
-     FROM profiles ORDER BY created_at ASC`
-  ).all();
-  return Response.json(results, {
-    headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'CDN-Cache-Control': 'no-store' }
-  });
+  try {
+    const { results } = await DB.prepare(
+      `SELECT uid, display_name, avatar_url, bio, role, skills, created_at, last_seen
+       FROM profiles ORDER BY created_at ASC`
+    ).all();
+    return Response.json(results, {
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'CDN-Cache-Control': 'no-store' }
+    });
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err.message }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 };
 
 export const onRequestPatch: PagesFunction<Env> = async (context) => {
   const { DB } = context.env;
-  const { uid } = await context.request.json() as { uid: string };
+  try {
+    const { uid } = await context.request.json() as { uid: string };
 
-  if (!uid) {
-    return new Response("Missing uid", { status: 400 });
+    if (!uid) {
+      return new Response("Missing uid", { status: 400 });
+    }
+
+    await DB.prepare(
+      "UPDATE profiles SET last_seen = CURRENT_TIMESTAMP WHERE uid = ?"
+    ).bind(uid).run();
+
+    return new Response("OK", { status: 200 });
+  } catch (err: any) {
+    return new Response(err.message, { status: 500 });
   }
-
-  await DB.prepare(
-    "UPDATE profiles SET last_seen = CURRENT_TIMESTAMP WHERE uid = ?"
-  ).bind(uid).run();
-
-  return new Response("OK", { status: 200 });
 };
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {

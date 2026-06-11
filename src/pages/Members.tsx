@@ -65,14 +65,21 @@ export default function Members() {
       const res = await fetch(`/api/profiles?t=${Date.now()}`, {
         cache: "no-store",
       });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
       const data = await res.json();
+      if (!Array.isArray(data)) {
+        throw new Error("Data is not an array");
+      }
       const sorted = (data as MemberProfile[]).sort((a, b) => {
         const wA = getRoleWeight(a.role);
         const wB = getRoleWeight(b.role);
         if (wA !== wB) return wA - wB;
-        return (
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
+        
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return timeA - timeB;
       });
       setMembers(sorted);
       setIsLoading(false);
@@ -87,7 +94,8 @@ export default function Members() {
           setIsCTO(true);
         }
       }
-    } catch {
+    } catch (err) {
+      console.error("fetchMembers failed:", err);
       setIsLoading(false);
     }
   };
