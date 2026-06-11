@@ -103,17 +103,20 @@ export default function Members() {
       try {
         const res = await fetch(`/api/calls?caller_uid=${user?.uid}`);
         const data = await res.json();
-        if (data && data.length > 0) {
-          const call = data[0];
-          if (call.id === ringingCallId) {
-            if (call.status === 'accepted') {
-              setRingingCallId(null);
-              navigate(`/meeting?room=${call.room_name}`);
-            } else if (call.status === 'rejected') {
-              toast.error(`${ringingTargetName} さんに拒否されました`);
-              setRingingCallId(null);
-              setRingingTargetName("");
-            }
+        
+        // Find the specific call we are tracking
+        const currentCall = data.find((c: any) => c.id === ringingCallId);
+        
+        if (currentCall) {
+          if (currentCall.status === 'accepted') {
+            clearInterval(interval);
+            setRingingCallId(null);
+            navigate(`/meeting?room=${currentCall.room_name}`);
+          } else if (currentCall.status === 'rejected') {
+            clearInterval(interval);
+            toast.error(`${ringingTargetName} さんに拒否されました`);
+            setRingingCallId(null);
+            setRingingTargetName("");
           }
         }
       } catch (err) {

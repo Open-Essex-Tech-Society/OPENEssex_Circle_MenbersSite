@@ -22,9 +22,9 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   }
 
   if (caller_uid) {
-    // Check if my call was accepted or rejected
+    // Check status of my outgoing call (only ringing, accepted, or rejected)
     const { results } = await DB.prepare(
-      "SELECT * FROM call_notifications WHERE caller_uid = ? ORDER BY updated_at DESC LIMIT 1"
+      "SELECT * FROM call_notifications WHERE caller_uid = ? AND status IN ('ringing', 'accepted', 'rejected') ORDER BY updated_at DESC LIMIT 1"
     ).bind(caller_uid).all();
     return Response.json(results);
   }

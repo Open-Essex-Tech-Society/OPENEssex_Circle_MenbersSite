@@ -63,19 +63,20 @@ export default function IncomingCallOverlay() {
 
   const handleDecline = async () => {
     if (!incomingCall) return;
+    const callId = incomingCall.id;
+    setIncomingCall(null); // Close UI immediately
     try {
       await fetch('/api/calls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'update',
-          call_id: incomingCall.id,
+          call_id: callId,
           status: 'rejected'
         }),
       });
-      setIncomingCall(null);
     } catch (err) {
-      setIncomingCall(null);
+      console.error('Failed to reject call:', err);
     }
   };
 
