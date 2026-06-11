@@ -33,6 +33,7 @@ export default function Meeting() {
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const isJoiningRef = useRef(false);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const roomRef = useRef<SkyWayRoom | null>(null);
@@ -46,7 +47,11 @@ export default function Meeting() {
     try {
       const res = await fetch('/api/meeting-rooms');
       const data = await res.json();
-      setActiveRooms(data);
+      if (Array.isArray(data)) {
+        setActiveRooms(data);
+      } else {
+        setActiveRooms([]);
+      }
     } catch (err) {
       console.error('Failed to fetch rooms:', err);
     }
@@ -97,6 +102,8 @@ export default function Meeting() {
   }, [user, location.search]);
 
   const joinRoom = async () => {
+    if (isJoiningRef.current) return;
+    
     if (!APP_ID || !SECRET_KEY) {
       toast.error('SkyWayの APP_ID または SECRET_KEY が設定されていません。(.envを確認してください)');
       return;
@@ -106,6 +113,7 @@ export default function Meeting() {
       return;
     }
 
+    isJoiningRef.current = true;
     setIsLoading(true);
     try {
       // トークンを生成
@@ -166,17 +174,42 @@ export default function Meeting() {
       });
       memberRef.current = member;
 
-      // Prepare local streams
-      const { video, audio } = await SkyWayStreamFactory.createMicrophoneAudioAndCameraStream();
-      setLocalVideoTrack(video);
-      setLocalAudioTrack(audio);
-
-      if (localVideoRef.current) {
-        video.attach(localVideoRef.current);
+      // Prepare local streams with fallback for denied permissions
+      let video: LocalVideoStream | null = null;
+      let audio: LocalAudioStream | null = null;
+      
+      try {
+        const stream = await SkyWayStreamFactory.createMicrophoneAudioAndCameraStream();
+        video = stream.video;
+        audio = stream.audio;
+      } catch (err: any) {
+        console.warn('カメラ・マイクの取得に失敗しました。音声のみで試行します', err);
+        try {
+          const stream = await SkyWayStreamFactory.createMicrophoneAudioStream();
+          audio = stream;
+        } catch (err2: any) {
+          console.warn('マイクの取得にも失敗しました', err2);
+        }
       }
 
-      videoPubRef.current = await member.publish(video);
-      audioPubRef.current = await member.publish(audio);
+      if (video) {
+        setLocalVideoTrack(video);
+        if (localVideoRef.current) {
+          video.attach(localVideoRef.current);
+        }
+        videoPubRef.current = await member.publish(video);
+        setIsCamOn(true);
+      } else {
+        setIsCamOn(false);
+      }
+
+      if (audio) {
+        setLocalAudioTrack(audio);
+        audioPubRef.current = await member.publish(audio);
+        setIsMicOn(true);
+      } else {
+        setIsMicOn(false);
+      }
 
       // Handle remote members and publications
       const subscribe = async (publication: RoomPublication) => {
@@ -234,6 +267,7 @@ export default function Meeting() {
       toast.error('入室に失敗しました: ' + error.message);
     } finally {
       setIsLoading(false);
+      isJoiningRef.current = false;
     }
   };
 
