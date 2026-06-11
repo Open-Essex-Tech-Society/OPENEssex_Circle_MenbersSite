@@ -10,7 +10,7 @@ import {
   RemoteAudioStream,
 } from '@skyway-sdk/room';
 import type { RoomPublication, LocalRoomMember } from '@skyway-sdk/room';
-import { Mic, MicOff, Video, VideoOff, LogOut, Settings } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, LogOut, Settings, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 
@@ -27,6 +27,7 @@ export default function Meeting() {
   const [, setLocalVideoTrack] = useState<LocalVideoStream | null>(null);
   const [, setLocalAudioTrack] = useState<LocalAudioStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<{ memberId: string, memberName: string, video?: RemoteVideoStream, audio?: RemoteAudioStream }[]>([]);
+  const [activeRooms, setActiveRooms] = useState<{ room_name: string, display_name: string, member_count: number }[]>([]);
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,6 +38,47 @@ export default function Meeting() {
   const contextRef = useRef<SkyWayContext | null>(null);
   const videoPubRef = useRef<RoomPublication<LocalVideoStream> | null>(null);
   const audioPubRef = useRef<RoomPublication<LocalAudioStream> | null>(null);
+
+  // Fetch active rooms
+  const fetchActiveRooms = async () => {
+    try {
+      const res = await fetch('/api/meeting-rooms');
+      const data = await res.json();
+      setActiveRooms(data);
+    } catch (err) {
+      console.error('Failed to fetch rooms:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchActiveRooms();
+    const interval = setInterval(fetchActiveRooms, 15000); // Poll every 15s
+    return () => clearInterval(interval);
+  }, []);
+
+  // Room heartbeat
+  useEffect(() => {
+    if (joined && roomName) {
+      const interval = setInterval(async () => {
+        try {
+          await fetch('/api/meeting-rooms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'heartbeat',
+              room_name: roomName,
+              display_name: roomName.startsWith('call_') ? 'Private Call' : roomName,
+              member_count: remoteStreams.length + 1,
+              created_by: user?.uid
+            }),
+          });
+        } catch (err) {
+          console.error('Room heartbeat failed:', err);
+        }
+      }, 30000); // Every 30s
+      return () => clearInterval(interval);
+    }
+  }, [joined, roomName, remoteStreams.length]);
 
   // Clean up on unmount
   useEffect(() => {
@@ -128,6 +170,19 @@ export default function Meeting() {
 
       setJoined(true);
       toast.success(`${roomName} に入室しました`);
+
+      // Initial heartbeat
+      fetch('/api/meeting-rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'heartbeat',
+          room_name: roomName,
+          display_name: roomName.startsWith('call_') ? 'Private Call' : roomName,
+          member_count: 1,
+          created_by: user?.uid
+        }),
+      }).catch(console.error);
     } catch (error: any) {
       console.error(error);
       toast.error('入室に失敗しました: ' + error.message);
@@ -137,6 +192,16 @@ export default function Meeting() {
   };
 
   const leaveRoom = async () => {
+    if (roomName) {
+      fetch('/api/meeting-rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'leave',
+          room_name: roomName
+        }),
+      }).catch(console.error);
+    }
     if (memberRef.current) {
       await memberRef.current.leave();
       memberRef.current = null;
@@ -187,27 +252,65 @@ export default function Meeting() {
       </div>
 
       {!joined ? (
-        <div className="glass-panel join-card">
-          <div className="form-group">
-            <label>ルーム名</label>
-            <input 
-              type="text" 
-              className="input-field" 
-              value={roomName} 
-              onChange={(e) => setRoomName(e.target.value)}
-              placeholder="Enter room name..."
-            />
+        <div className="meeting-lobby">
+          <div className="glass-panel join-card">
+            <h3>ルームを作成または参加</h3>
+            <div className="form-group">
+              <label>ルーム名</label>
+              <input 
+                type="text" 
+                className="input-field" 
+                value={roomName} 
+                onChange={(e) => setRoomName(e.target.value)}
+                placeholder="Enter room name..."
+              />
+            </div>
+            <button 
+              className="btn btn-primary premium-button" 
+              onClick={joinRoom}
+              disabled={isLoading}
+              style={{ width: '100%' }}
+            >
+              {isLoading ? '接続中...' : 'ルームに参加する'}
+            </button>
           </div>
-          <button 
-            className="btn btn-primary premium-button" 
-            onClick={joinRoom}
-            disabled={isLoading}
-          >
-            {isLoading ? '接続中...' : 'ルームに参加する'}
-          </button>
+
+          <div className="active-rooms-section">
+            <h3>アクティブなグループルーム</h3>
+            {activeRooms.filter(r => !r.room_name.startsWith('call_')).length === 0 ? (
+              <div className="glass-panel empty-rooms">
+                <p>現在アクティブなグループルームはありません</p>
+              </div>
+            ) : (
+              <div className="rooms-grid">
+                {activeRooms.filter(r => !r.room_name.startsWith('call_')).map(room => (
+                  <div key={room.room_name} className="glass-panel room-card">
+                    <div className="room-card-info">
+                      <h4>{room.display_name}</h4>
+                      <div className="room-stats">
+                        <Users size={16} />
+                        <span>{room.member_count} 人が参加中</span>
+                      </div>
+                    </div>
+                    <button 
+                      className="btn btn-primary btn-sm"
+                      onClick={() => {
+                        setRoomName(room.room_name);
+                        // joinRoom will be called by useEffect if we change URL or we can call it directly
+                        setTimeout(joinRoom, 100);
+                      }}
+                    >
+                      参加
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <div className="meeting-container">
+          {/* ... existing meeting container ... */}
           <div className="meeting-grid">
             {/* Local Video */}
             <div className="video-card glass-panel local">
@@ -267,6 +370,53 @@ export default function Meeting() {
       )}
 
       <style>{`
+        .meeting-lobby {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 2rem;
+          margin-top: 2rem;
+        }
+        .active-rooms-section h3 {
+          margin-bottom: 1.5rem;
+          text-align: left;
+        }
+        .rooms-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+        .room-card {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1.2rem 1.5rem;
+          text-align: left;
+        }
+        .room-card h4 {
+          margin: 0 0 0.4rem;
+          font-size: 1.1rem;
+        }
+        .room-stats {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.9rem;
+          color: var(--text-muted);
+        }
+        .empty-rooms {
+          padding: 3rem;
+          text-align: center;
+          color: var(--text-muted);
+        }
+        .btn-sm {
+          padding: 8px 20px;
+          font-size: 0.9rem;
+        }
+        @media (max-width: 900px) {
+          .meeting-lobby {
+            grid-template-columns: 1fr;
+          }
+        }
         .meeting-page {
           max-width: 1200px;
         }

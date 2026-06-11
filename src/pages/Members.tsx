@@ -11,7 +11,15 @@ interface MemberProfile {
   role: string;
   skills: string;
   created_at: string;
+  last_seen?: string;
 }
+
+const isOnline = (lastSeen?: string) => {
+  if (!lastSeen) return false;
+  const lastSeenDate = new Date(lastSeen).getTime();
+  const now = new Date().getTime();
+  return now - lastSeenDate < 5 * 60 * 1000; // 5 minutes
+};
 
 const getRoleWeight = (role: string) => {
   if (!role) return 8;
@@ -195,6 +203,7 @@ export default function Members() {
                       {member.display_name.charAt(0).toUpperCase()}
                     </div>
                   )}
+                  <div className={`status-indicator ${isOnline(member.last_seen) ? 'online' : 'offline'}`}></div>
                 </div>
                 <div className="member-row-info">
                   <div className="member-row-top">

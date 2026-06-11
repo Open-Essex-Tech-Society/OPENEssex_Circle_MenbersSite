@@ -4,14 +4,28 @@ interface Env {
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { DB } = context.env;
-  // Only fetch fields needed for the list view (exclude heavy avatar_url for list)
   const { results } = await DB.prepare(
-    `SELECT uid, display_name, avatar_url, bio, role, skills, created_at
+    `SELECT uid, display_name, avatar_url, bio, role, skills, created_at, last_seen
      FROM profiles ORDER BY created_at ASC`
   ).all();
   return Response.json(results, {
     headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'CDN-Cache-Control': 'no-store' }
   });
+};
+
+export const onRequestPatch: PagesFunction<Env> = async (context) => {
+  const { DB } = context.env;
+  const { uid } = await context.request.json() as { uid: string };
+
+  if (!uid) {
+    return new Response("Missing uid", { status: 400 });
+  }
+
+  await DB.prepare(
+    "UPDATE profiles SET last_seen = CURRENT_TIMESTAMP WHERE uid = ?"
+  ).bind(uid).run();
+
+  return new Response("OK", { status: 200 });
 };
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
@@ -42,7 +56,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
        linkedin_url = excluded.linkedin_url,
        github_url = excluded.github_url,
        website_url = excluded.website_url,
-       updated_at = CURRENT_TIMESTAMP`
+       updated_at = CURRENT_TIMESTAMP,
+       last_seen = CURRENT_TIMESTAMP`
   ).bind(
     data.uid,
     data.display_name,

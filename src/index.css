@@ -918,6 +918,24 @@ code {
 }
 .member-row-avatar {
   flex-shrink: 0;
+  position: relative;
+}
+.status-indicator {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--glass-bg);
+  z-index: 2;
+}
+.status-indicator.online {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+.status-indicator.offline {
+  background: #6b7280;
 }
 .member-row-img {
   width: 48px;

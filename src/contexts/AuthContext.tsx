@@ -80,7 +80,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setDbAvatar('');
       }
     });
-    return () => unsubscribe();
+
+    // Heartbeat for online status
+    const heartbeatInterval = setInterval(async () => {
+      const currentUser = auth?.currentUser;
+      if (currentUser) {
+        try {
+          await fetch('/api/profiles', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uid: currentUser.uid }),
+          });
+        } catch (err) {
+          console.error('Heartbeat failed:', err);
+        }
+      }
+    }, 60000); // Every 60 seconds
+
+    return () => {
+      unsubscribe();
+      clearInterval(heartbeatInterval);
+    };
   }, []);
 
   const updateLocalProfile = (name: string, avatar: string) => {
