@@ -17,6 +17,7 @@ import MyPage from './pages/MyPage';
 import FaceScanner from './pages/FaceScanner';
 import Calendar from './pages/Calendar';
 import Meeting from './pages/Meeting';
+import Call from './pages/Call';
 import IncomingCallOverlay from './components/IncomingCallOverlay';
 import { PhoneOff } from 'lucide-react';
 import './App.css';
@@ -56,6 +57,7 @@ function AppRoutes() {
       <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
       <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
       <Route path="/meeting" element={<ProtectedRoute><Meeting /></ProtectedRoute>} />
+      <Route path="/call" element={<ProtectedRoute><Call /></ProtectedRoute>} />
     </Routes>
   );
 }

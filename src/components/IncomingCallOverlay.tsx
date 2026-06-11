@@ -55,7 +55,7 @@ export default function IncomingCallOverlay() {
       });
       const room = incomingCall.room_name;
       setIncomingCall(null);
-      navigate(`/meeting?room=${room}`);
+      navigate(`/call?room=${room}`);
     } catch (err) {
       toast.error('応答に失敗しました');
     }

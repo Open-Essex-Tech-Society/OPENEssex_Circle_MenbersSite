@@ -72,7 +72,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           if (currentCall.status === 'accepted') {
             clearInterval(interval);
             setRingingCallId(null);
-            navigate(`/meeting?room=${currentCall.room_name}`);
+            navigate(`/call?room=${currentCall.room_name}`);
           } else if (currentCall.status === 'rejected') {
             clearInterval(interval);
             toast.error(`${ringingTargetName} さんに拒否されました`);
