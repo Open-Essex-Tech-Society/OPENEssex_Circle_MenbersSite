@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { 
-  SkyWayContext, 
-  SkyWayRoom, 
-  SkyWayStreamFactory, 
-  LocalVideoStream, 
+import {
+  SkyWayContext,
+  SkyWayRoom,
+  SkyWayStreamFactory,
+  LocalVideoStream,
   LocalAudioStream,
   RemoteVideoStream,
   RemoteAudioStream,
@@ -16,391 +16,537 @@ import { toast } from 'react-hot-toast';
 import { nowInSec, SkyWayAuthToken, uuidV4 } from '@skyway-sdk/token';
 
 const APP_ID = import.meta.env.VITE_SKYWAY_APP_ID;
-const SECRET_KEY = import.meta.env.VITE_SKYWAY_SECRET_KEY || import.meta.env.VITE_SKYWAY_API_KEY;
+const SECRET_KEY = import.meta.env.VITE_SKYWAY_SECRET_KEY;
+
+interface RemoteParticipant {
+  memberName: string;
+  video?: RemoteVideoStream;
+  audio?: RemoteAudioStream;
+}
 
 export default function Call() {
   const { user, userName } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const queryParams = new URLSearchParams(location.search);
-  const roomName = queryParams.get('room');
-  
+  const roomName = new URLSearchParams(location.search).get('room');
+
   const [joined, setJoined] = useState(false);
-  const [, setLocalVideoTrack] = useState<LocalVideoStream | null>(null);
-  const [, setLocalAudioTrack] = useState<LocalAudioStream | null>(null);
-  const [remoteStream, setRemoteStream] = useState<{ memberName: string, video?: RemoteVideoStream, audio?: RemoteAudioStream } | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [remote, setRemote] = useState<RemoteParticipant | null>(null);
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(true);
-  
+
+  // DOM refs
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
-  const isJoiningRef = useRef(false);
 
+  // SkyWay refs – never triggers re-renders
+  const contextRef = useRef<SkyWayContext | null>(null);
   const roomRef = useRef<SkyWayRoom | null>(null);
   const memberRef = useRef<LocalRoomMember | null>(null);
-  const contextRef = useRef<SkyWayContext | null>(null);
   const videoPubRef = useRef<RoomPublication<LocalVideoStream> | null>(null);
   const audioPubRef = useRef<RoomPublication<LocalAudioStream> | null>(null);
+  const localVideoTrackRef = useRef<LocalVideoStream | null>(null);
+  const localAudioTrackRef = useRef<LocalAudioStream | null>(null);
 
-  useEffect(() => {
-    if (!roomName) {
-      toast.error('無効な通話リンクです');
-      navigate('/members');
-      return;
-    }
-    if (user && !joined) {
-      joinCall();
-    }
-    return () => {
-      endCall();
-    };
-  }, [user, roomName]);
+  // Guard: prevent double-call in React StrictMode or fast navigation
+  const didJoinRef = useRef(false);
+  const isCleanedUpRef = useRef(false);
 
-  const joinCall = async () => {
-    if (isJoiningRef.current) return;
-    isJoiningRef.current = true;
+  // ---- Cleanup ----
+  const cleanup = useCallback(async () => {
+    if (isCleanedUpRef.current) return;
+    isCleanedUpRef.current = true;
 
-    if (!APP_ID || !SECRET_KEY) {
-      toast.error('認証情報が設定されていません(.env)');
-      return;
-    }
-
-    try {
-      const token = new SkyWayAuthToken({
-        jti: uuidV4(),
-        iat: nowInSec(),
-        exp: nowInSec() + 60 * 60 * 24,
-        scope: {
-          app: {
-            id: APP_ID, turn: true, actions: ['read'],
-            channels: [{
-              id: '*', name: '*', actions: ['write'],
-              members: [{ id: '*', name: '*', actions: ['write'], publication: { actions: ['write'] }, subscription: { actions: ['write'] } }],
-              sfuBots: [{ actions: ['write'], forwardings: [{ actions: ['write'] }] }],
-            }],
-          },
-        },
-      }).encode(SECRET_KEY);
-
-      const context = await SkyWayContext.Create(token);
-      contextRef.current = context;
-
-      const room = await SkyWayRoom.FindOrCreate(context, { type: 'sfu', name: roomName! });
-      roomRef.current = room;
-
-      const member = await room.join({ name: userName || user?.email || 'User' });
-      memberRef.current = member;
-
-      let video: LocalVideoStream | null = null;
-      let audio: LocalAudioStream | null = null;
-      
-      try {
-        const stream = await SkyWayStreamFactory.createMicrophoneAudioAndCameraStream();
-        video = stream.video;
-        audio = stream.audio;
-      } catch (err) {
-        console.warn('Camera/Mic permission failed. Trying Audio only...', err);
-        try {
-          audio = await SkyWayStreamFactory.createMicrophoneAudioStream();
-        } catch (e) {
-          console.warn('Microphone permission failed.', e);
-        }
-      }
-
-      if (video) {
-        setLocalVideoTrack(video);
-        if (localVideoRef.current) video.attach(localVideoRef.current);
-        videoPubRef.current = await member.publish(video);
-        setIsCamOn(true);
-      } else {
-        setIsCamOn(false);
-      }
-
-      if (audio) {
-        setLocalAudioTrack(audio);
-        audioPubRef.current = await member.publish(audio);
-        setIsMicOn(true);
-      } else {
-        setIsMicOn(false);
-      }
-
-      const subscribe = async (publication: RoomPublication) => {
-        if (publication.publisher.id === member.id) return;
-        const { stream } = await member.subscribe(publication.id);
-        
-        setRemoteStream((prev) => {
-          const newState = prev ? { ...prev } : { memberName: publication.publisher.name || 'Unknown' };
-          if (stream.contentType === 'video') newState.video = stream as RemoteVideoStream;
-          if (stream.contentType === 'audio') newState.audio = stream as RemoteAudioStream;
-          return newState;
-        });
-      };
-
-      room.onStreamPublished.add(({ publication }) => subscribe(publication));
-      room.publications.forEach(subscribe);
-
-      room.onMemberLeft.add(() => {
-        toast('相手が退出しました。通話を終了します');
-        handleHangup();
-      });
-
-      setJoined(true);
-    } catch (err: any) {
-      console.error(err);
-      toast.error('通話の接続に失敗しました');
-      navigate('/members');
-    } finally {
-      isJoiningRef.current = false;
-    }
-  };
-
-  const endCall = async () => {
-    if (memberRef.current) {
-      await memberRef.current.leave();
-      memberRef.current = null;
-    }
-    if (contextRef.current) {
-      contextRef.current.dispose();
-      contextRef.current = null;
-    }
+    try { await memberRef.current?.leave(); } catch (_) {}
+    try { contextRef.current?.dispose(); } catch (_) {}
+    memberRef.current = null;
+    contextRef.current = null;
+    roomRef.current = null;
     videoPubRef.current = null;
     audioPubRef.current = null;
-  };
+    localVideoTrackRef.current = null;
+    localAudioTrackRef.current = null;
+  }, []);
 
-  const handleHangup = () => {
-    endCall();
+  // ---- Hangup ----
+  const handleHangup = useCallback(() => {
+    cleanup();
     navigate('/members');
-  };
+  }, [cleanup, navigate]);
 
-  const toggleMic = async () => {
-    if (audioPubRef.current) {
-      if (isMicOn) await audioPubRef.current.disable();
-      else await audioPubRef.current.enable();
-      setIsMicOn(!isMicOn);
+  // ---- Attach remote stream to video/audio element when it arrives ----
+  useEffect(() => {
+    if (remote?.video && remoteVideoRef.current) {
+      remote.video.attach(remoteVideoRef.current);
+      remoteVideoRef.current.play().catch(() => {});
     }
+  }, [remote?.video]);
+
+  useEffect(() => {
+    if (remote?.audio && remoteAudioRef.current) {
+      remote.audio.attach(remoteAudioRef.current);
+      remoteAudioRef.current.play().catch(() => {});
+    }
+  }, [remote?.audio]);
+
+  // ---- Main join logic ----
+  useEffect(() => {
+    if (!user || !roomName) return;
+    if (didJoinRef.current) return;
+    didJoinRef.current = true;
+    isCleanedUpRef.current = false;
+
+    (async () => {
+      setIsConnecting(true);
+
+      if (!APP_ID || !SECRET_KEY) {
+        toast.error('SkyWayの認証情報が .env に設定されていません');
+        navigate('/members');
+        return;
+      }
+
+      try {
+        // 1. Auth token
+        const token = new SkyWayAuthToken({
+          jti: uuidV4(),
+          iat: nowInSec(),
+          exp: nowInSec() + 60 * 60 * 24,
+          scope: {
+            app: {
+              id: APP_ID,
+              turn: true,
+              actions: ['read'],
+              channels: [{
+                id: '*',
+                name: '*',
+                actions: ['write'],
+                members: [{
+                  id: '*',
+                  name: '*',
+                  actions: ['write'],
+                  publication: { actions: ['write'] },
+                  subscription: { actions: ['write'] },
+                }],
+                sfuBots: [{ actions: ['write'], forwardings: [{ actions: ['write'] }] }],
+              }],
+            },
+          },
+        }).encode(SECRET_KEY);
+
+        // 2. Context
+        const ctx = await SkyWayContext.Create(token);
+        contextRef.current = ctx;
+
+        // 3. Room (p2p for 1-on-1)
+        const room = await SkyWayRoom.FindOrCreate(ctx, {
+          type: 'p2p',
+          name: roomName,
+        });
+        roomRef.current = room;
+
+        // 4. Join
+        const member = await room.join({
+          name: userName || user.email || 'User',
+        });
+        memberRef.current = member;
+
+        // 5. Local media
+        let videoStream: LocalVideoStream | null = null;
+        let audioStream: LocalAudioStream | null = null;
+
+        try {
+          const streams = await SkyWayStreamFactory.createMicrophoneAudioAndCameraStream();
+          videoStream = streams.video;
+          audioStream = streams.audio;
+        } catch {
+          try {
+            audioStream = await SkyWayStreamFactory.createMicrophoneAudioStream();
+            toast('カメラへのアクセスが拒否されました。音声のみで参加します');
+          } catch {
+            toast.error('マイクへのアクセスが拒否されました');
+          }
+        }
+
+        if (videoStream) {
+          localVideoTrackRef.current = videoStream;
+          if (localVideoRef.current) {
+            videoStream.attach(localVideoRef.current);
+            localVideoRef.current.play().catch(() => {});
+          }
+          videoPubRef.current = await member.publish(videoStream);
+          setIsCamOn(true);
+        } else {
+          setIsCamOn(false);
+        }
+
+        if (audioStream) {
+          localAudioTrackRef.current = audioStream;
+          audioPubRef.current = await member.publish(audioStream);
+          setIsMicOn(true);
+        } else {
+          setIsMicOn(false);
+        }
+
+        // 6. Subscribe to remote publications
+        const subscribe = async (pub: RoomPublication) => {
+          if (pub.publisher.id === member.id) return;
+
+          try {
+            const { stream } = await member.subscribe(pub.id);
+            setRemote((prev) => {
+              const base: RemoteParticipant = prev ?? { memberName: pub.publisher.name || '相手' };
+              if (stream.contentType === 'video') return { ...base, video: stream as RemoteVideoStream };
+              if (stream.contentType === 'audio') return { ...base, audio: stream as RemoteAudioStream };
+              return base;
+            });
+          } catch (e) {
+            console.error('subscribe failed', e);
+          }
+        };
+
+        // Subscribe to already-published streams
+        for (const pub of room.publications) {
+          await subscribe(pub);
+        }
+
+        // Subscribe to future streams
+        room.onStreamPublished.add(({ publication }) => subscribe(publication));
+
+        // Handle partner leaving
+        room.onMemberLeft.add(({ member: left }) => {
+          if (left.id !== member.id) {
+            toast('相手が退出しました');
+            handleHangup();
+          }
+        });
+
+        setJoined(true);
+        setIsConnecting(false);
+
+      } catch (err: any) {
+        console.error('Call join error:', err);
+        const msg = err?.message || String(err);
+        toast.error('接続失敗: ' + msg);
+        await cleanup();
+        navigate('/members');
+      }
+    })();
+
+    // Cleanup on unmount
+    return () => {
+      cleanup();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, roomName]);
+
+  // ---- Controls ----
+  const toggleMic = async () => {
+    if (!audioPubRef.current) return;
+    if (isMicOn) await audioPubRef.current.disable();
+    else await audioPubRef.current.enable();
+    setIsMicOn(v => !v);
   };
 
   const toggleCam = async () => {
-    if (videoPubRef.current) {
-      if (isCamOn) await videoPubRef.current.disable();
-      else await videoPubRef.current.enable();
-      setIsCamOn(!isCamOn);
-    }
+    if (!videoPubRef.current) return;
+    if (isCamOn) await videoPubRef.current.disable();
+    else await videoPubRef.current.enable();
+    setIsCamOn(v => !v);
   };
 
-  // When remote stream changes, attach
-  useEffect(() => {
-    if (remoteStream?.video && remoteVideoRef.current) {
-      remoteStream.video.attach(remoteVideoRef.current);
-    }
-    if (remoteStream?.audio && remoteAudioRef.current) {
-      remoteStream.audio.attach(remoteAudioRef.current);
-    }
-  }, [remoteStream, remoteStream?.video, remoteStream?.audio]);
-
+  // ---- Render ----
   return (
     <div className="one-on-one-call-container">
-      {/* Remote Video (Full Screen Base) */}
+      {/* Remote area */}
       <div className="call-remote-area">
-        {remoteStream?.video ? (
+        {isConnecting && !joined ? (
+          <div className="call-connecting">
+            <div className="call-spinner" />
+            <p>接続中...</p>
+          </div>
+        ) : remote?.video ? (
           <video ref={remoteVideoRef} autoPlay playsInline className="call-remote-video" />
         ) : (
           <div className="call-remote-placeholder">
-            <div className="call-avatar-placeholder">
-              {remoteStream?.memberName ? remoteStream.memberName.charAt(0).toUpperCase() : '…'}
+            <div className="call-big-avatar">
+              {remote?.memberName ? remote.memberName.charAt(0).toUpperCase() : '…'}
             </div>
-            {remoteStream ? <p>{remoteStream.memberName}と通話中 (音声)</p> : <p>相手の参加を待機しています...</p>}
+            <p className="call-waiting-text">
+              {remote ? `${remote.memberName} と通話中（音声のみ）` : '相手の参加を待機中...'}
+            </p>
+            {!remote && (
+              <p className="call-waiting-sub">相手が応答するとつながります</p>
+            )}
           </div>
         )}
         <audio ref={remoteAudioRef} autoPlay />
       </div>
 
-      {/* Local Video (PIP) */}
-      <div className="call-local-area">
-        <video ref={localVideoRef} autoPlay muted playsInline className={`call-local-video ${!isCamOn ? 'hidden' : ''}`} />
+      {/* Local PIP */}
+      <div className={`call-local-pip ${!joined ? 'hidden' : ''}`}>
+        <video
+          ref={localVideoRef}
+          autoPlay
+          muted
+          playsInline
+          className={`call-local-video ${!isCamOn ? 'hidden' : ''}`}
+        />
         {!isCamOn && (
-           <div className="call-local-placeholder">
-             <div className="call-avatar-placeholder small"> You </div>
-           </div>
+          <div className="call-local-no-cam">
+            <span>{userName?.charAt(0).toUpperCase() || 'Y'}</span>
+          </div>
         )}
+        <div className="call-local-label">You</div>
       </div>
 
-      {/* Controls Overlay */}
-      <div className="call-controls-overlay glass-panel">
-        <button className={`call-control-btn ${!isMicOn ? 'off' : ''}`} onClick={toggleMic}>
-          {isMicOn ? <Mic size={24}/> : <MicOff size={24}/>}
+      {/* Controls */}
+      <div className="call-controls-bar">
+        <button
+          className={`ccb ${isMicOn ? 'active' : 'muted'}`}
+          onClick={toggleMic}
+          title={isMicOn ? 'マイクをオフ' : 'マイクをオン'}
+        >
+          {isMicOn ? <Mic size={22} /> : <MicOff size={22} />}
         </button>
-        <button className={`call-control-btn ${!isCamOn ? 'off' : ''}`} onClick={toggleCam}>
-          {isCamOn ? <Video size={24}/> : <VideoOff size={24}/>}
+
+        <button
+          className={`ccb ${isCamOn ? 'active' : 'muted'}`}
+          onClick={toggleCam}
+          title={isCamOn ? 'カメラをオフ' : 'カメラをオン'}
+        >
+          {isCamOn ? <Video size={22} /> : <VideoOff size={22} />}
         </button>
-        <div style={{ width: '20px' }}></div>
-        <button className="call-control-btn hangup" onClick={handleHangup}>
-          <PhoneOff size={28}/>
+
+        <button className="ccb hangup" onClick={handleHangup} title="通話を終了">
+          <PhoneOff size={24} />
         </button>
       </div>
 
       <style>{`
+        * { box-sizing: border-box; }
+
         .one-on-one-call-container {
           position: fixed;
           inset: 0;
           z-index: 99999;
-          background: #0a0a0a;
+          background: #0d0d0f;
           display: flex;
           flex-direction: column;
+          font-family: 'Outfit', system-ui, sans-serif;
         }
 
+        /* ── Remote area ─────────────────────── */
         .call-remote-area {
           flex: 1;
           position: relative;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #000;
+          overflow: hidden;
         }
 
         .call-remote-video {
+          position: absolute;
+          inset: 0;
           width: 100%;
           height: 100%;
           object-fit: cover;
         }
 
         .call-remote-placeholder {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1.2rem;
           text-align: center;
+          padding: 2rem;
+        }
+
+        .call-big-avatar {
+          width: 140px;
+          height: 140px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #ff4766 0%, #ff8e52 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 3.5rem;
+          font-weight: 700;
           color: white;
+          box-shadow: 0 0 60px rgba(255, 71, 102, 0.35);
+          animation: callPulse 2.5s ease-in-out infinite;
+        }
+
+        @keyframes callPulse {
+          0%, 100% { box-shadow: 0 0 40px rgba(255, 71, 102, 0.3); }
+          50% { box-shadow: 0 0 80px rgba(255, 71, 102, 0.6); }
+        }
+
+        .call-waiting-text {
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 1.3rem;
+          font-weight: 600;
+          margin: 0;
+        }
+
+        .call-waiting-sub {
+          color: rgba(255, 255, 255, 0.45);
+          font-size: 0.95rem;
+          margin: 0;
+        }
+
+        /* ── Connecting spinner ───────────────── */
+        .call-connecting {
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 1.5rem;
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 1.1rem;
         }
 
-        .call-remote-placeholder p {
-          font-size: 1.2rem;
-          color: rgba(255, 255, 255, 0.8);
-        }
-
-        .call-avatar-placeholder {
-          width: 130px;
-          height: 130px;
+        .call-spinner {
+          width: 56px;
+          height: 56px;
+          border: 4px solid rgba(255,255,255,0.1);
+          border-top-color: #ff4766;
           border-radius: 50%;
-          background: linear-gradient(135deg, #ff4766 0%, #ff8e52 100%);
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 3rem;
-          font-weight: bold;
+          animation: spin 1s linear infinite;
         }
 
-        .call-local-area {
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Local PIP ───────────────────────── */
+        .call-local-pip {
           position: absolute;
-          bottom: 120px;
+          bottom: 110px;
           right: 20px;
-          width: 180px;
-          aspect-ratio: 9/16;
-          max-height: 300px;
-          background: #000;
-          border-radius: 16px;
+          width: 160px;
+          height: 210px;
+          border-radius: 18px;
           overflow: hidden;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-          border: 2px solid rgba(255, 255, 255, 0.1);
-          z-index: 10;
+          background: #111;
+          border: 2px solid rgba(255, 255, 255, 0.12);
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+          z-index: 20;
+          transition: opacity 0.3s;
         }
+
+        .call-local-pip.hidden { opacity: 0; pointer-events: none; }
 
         .call-local-video {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          transform: scaleX(-1); /* Mirror local video */
+          transform: scaleX(-1);
         }
 
-        .call-local-placeholder {
+        .call-local-no-cam {
           width: 100%;
           height: 100%;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #111;
+          background: #1a1a2e;
+          font-size: 2rem;
+          font-weight: 700;
+          color: white;
         }
 
-        .call-avatar-placeholder.small {
-          width: 70px;
-          height: 70px;
-          font-size: 1.2rem;
-        }
-
-        .call-controls-overlay {
+        .call-local-label {
           position: absolute;
-          bottom: 30px;
+          bottom: 8px;
+          left: 10px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.8);
+          background: rgba(0, 0, 0, 0.5);
+          padding: 2px 8px;
+          border-radius: 10px;
+          backdrop-filter: blur(4px);
+        }
+
+        /* ── Controls bar ────────────────────── */
+        .call-controls-bar {
+          position: absolute;
+          bottom: 28px;
           left: 50%;
           transform: translateX(-50%);
           display: flex;
           align-items: center;
-          justify-content: center;
-          gap: 1.5rem;
-          padding: 1rem 2rem;
-          border-radius: 100px;
+          gap: 18px;
+          padding: 14px 28px;
+          background: rgba(15, 10, 15, 0.75);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 999px;
           z-index: 100;
-          backdrop-filter: blur(20px);
-          background: rgba(30, 8, 12, 0.6);
         }
 
-        .call-control-btn {
-          width: 60px;
-          height: 60px;
+        .ccb {
+          width: 58px;
+          height: 58px;
           border-radius: 50%;
           border: none;
-          background: rgba(255, 255, 255, 0.15);
-          color: white;
+          cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          outline: none;
+          color: white;
         }
 
-        .call-control-btn:hover {
-          background: rgba(255, 255, 255, 0.25);
-          transform: translateY(-5px);
+        .ccb.active {
+          background: rgba(255, 255, 255, 0.14);
+        }
+        .ccb.active:hover {
+          background: rgba(255, 255, 255, 0.22);
+          transform: translateY(-4px) scale(1.05);
         }
 
-        .call-control-btn.off {
-          background: rgba(255, 255, 255, 0.9);
+        .ccb.muted {
+          background: rgba(255, 255, 255, 0.92);
           color: #ff4766;
         }
+        .ccb.muted:hover {
+          background: white;
+          transform: translateY(-4px) scale(1.05);
+        }
 
-        .call-control-btn.hangup {
+        .ccb.hangup {
           background: #ff4766;
-          transform: scale(1.1);
+          width: 66px;
+          height: 66px;
+          box-shadow: 0 6px 20px rgba(255, 71, 102, 0.45);
+        }
+        .ccb.hangup:hover {
+          background: #ff2347;
+          transform: translateY(-4px) scale(1.08);
+          box-shadow: 0 12px 30px rgba(255, 71, 102, 0.6);
         }
 
-        .call-control-btn.hangup:hover {
-          background: #ff2d51;
-          transform: scale(1.1) translateY(-5px);
-          box-shadow: 0 10px 30px rgba(255, 71, 102, 0.5);
-        }
+        .hidden { display: none !important; }
 
-        .hidden {
-          display: none;
-        }
-
-        @media (max-width: 768px) {
-          .call-local-area {
-            bottom: 110px;
-            right: 15px;
-            width: 120px;
-            max-height: 200px;
+        @media (max-width: 680px) {
+          .call-local-pip {
+            bottom: 100px;
+            right: 12px;
+            width: 110px;
+            height: 145px;
+            border-radius: 12px;
           }
-          .call-controls-overlay {
-            width: 90%;
-            max-width: 350px;
-            justify-content: space-around;
-            padding: 0.8rem 1rem;
+          .call-controls-bar {
+            gap: 14px;
+            padding: 12px 20px;
+            bottom: 20px;
           }
-          .call-control-btn {
-            width: 50px;
-            height: 50px;
-          }
+          .ccb { width: 50px; height: 50px; }
+          .ccb.hangup { width: 58px; height: 58px; }
+          .call-big-avatar { width: 110px; height: 110px; font-size: 2.8rem; }
         }
       `}</style>
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Phone, PhoneOff } from 'lucide-react';
@@ -16,55 +16,72 @@ export default function IncomingCallOverlay() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [incomingCall, setIncomingCall] = useState<CallNotification | null>(null);
+  const isRespondingRef = useRef(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Poll for incoming calls
   useEffect(() => {
     if (!user) return;
 
-    const interval = setInterval(async () => {
-      if (incomingCall) return; // Already showing a call
+    const uid = user.uid;
+
+    const poll = async () => {
+      // Don't poll while we're processing a response
+      if (isRespondingRef.current) return;
+      // Don't poll if already showing a call
+      if (incomingCall) return;
 
       try {
-        const res = await fetch(`/api/calls?target_uid=${user.uid}`);
+        const res = await fetch(`/api/calls?target_uid=${uid}`);
+        if (!res.ok) return;
         const data = await res.json();
-        if (data && data.length > 0) {
+        if (Array.isArray(data) && data.length > 0) {
           setIncomingCall(data[0]);
-          // Optional: Play sound
-          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3');
-          audio.play().catch(() => {});
         }
       } catch (err) {
-        console.error('Failed to poll for calls:', err);
+        console.error('Incoming call poll error:', err);
       }
-    }, 3000); // Check every 3 seconds
+    };
 
-    return () => clearInterval(interval);
-  }, [user, incomingCall]);
+    pollRef.current = setInterval(poll, 3000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  // deliberately only run when user changes, not on incomingCall change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
   const handleAccept = async () => {
-    if (!incomingCall) return;
+    if (!incomingCall || isRespondingRef.current) return;
+    isRespondingRef.current = true;
+
     try {
-      await fetch('/api/calls', {
+      const res = await fetch('/api/calls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'update',
           call_id: incomingCall.id,
-          status: 'accepted'
+          status: 'accepted',
         }),
       });
+
+      if (!res.ok) throw new Error('応答の送信に失敗しました');
+
       const room = incomingCall.room_name;
       setIncomingCall(null);
       navigate(`/call?room=${room}`);
-    } catch (err) {
-      toast.error('応答に失敗しました');
+    } catch (err: any) {
+      toast.error('応答に失敗しました: ' + err.message);
+      isRespondingRef.current = false;
     }
   };
 
   const handleDecline = async () => {
-    if (!incomingCall) return;
+    if (!incomingCall || isRespondingRef.current) return;
+    isRespondingRef.current = true;
     const callId = incomingCall.id;
-    setIncomingCall(null); // Close UI immediately
+    setIncomingCall(null);
+
     try {
       await fetch('/api/calls', {
         method: 'POST',
@@ -72,11 +89,13 @@ export default function IncomingCallOverlay() {
         body: JSON.stringify({
           action: 'update',
           call_id: callId,
-          status: 'rejected'
+          status: 'rejected',
         }),
       });
     } catch (err) {
-      console.error('Failed to reject call:', err);
+      console.error('Decline failed:', err);
+    } finally {
+      isRespondingRef.current = false;
     }
   };
 
@@ -89,12 +108,12 @@ export default function IncomingCallOverlay() {
           <div className="call-avatar-placeholder">
             {incomingCall.caller_name.charAt(0).toUpperCase()}
           </div>
-          <div className="ringing-animation"></div>
+          <div className="ringing-animation" />
         </div>
-        
+
         <h2 className="call-title">着信中</h2>
         <p className="caller-name">{incomingCall.caller_name}</p>
-        
+
         <div className="call-actions">
           <button className="call-btn-circle decline" onClick={handleDecline} title="拒否">
             <PhoneOff size={24} />

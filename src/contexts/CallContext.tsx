@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -16,11 +16,20 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const { user, userName } = useAuth();
   const navigate = useNavigate();
   const [ringingCallId, setRingingCallId] = useState<number | null>(null);
-  const [ringingTargetName, setRingingTargetName] = useState("");
+  const [ringingTargetName, setRingingTargetName] = useState('');
+
+  // Use a ref to track the interval so it's stable across renders
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const ringingCallIdRef = useRef<number | null>(null);
+  const ringingTargetNameRef = useRef('');
+
+  // Keep refs in sync with state
+  useEffect(() => { ringingCallIdRef.current = ringingCallId; }, [ringingCallId]);
+  useEffect(() => { ringingTargetNameRef.current = ringingTargetName; }, [ringingTargetName]);
 
   const startCall = async (targetUid: string, targetName: string) => {
     if (!user) return;
-    const roomName = `call_${[user.uid, targetUid].sort().join("_")}`;
+    const roomName = `call_${[user.uid, targetUid].sort().join('_')}`;
     setRingingTargetName(targetName);
 
     try {
@@ -30,63 +39,90 @@ export function CallProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           action: 'start',
           caller_uid: user.uid,
-          caller_name: userName || 'User',
+          caller_name: userName || user.displayName || 'User',
           target_uid: targetUid,
-          room_name: roomName
+          room_name: roomName,
         }),
       });
       const data = await res.json();
-      if (res.ok && data && data.id) {
+      if (res.ok && data?.id) {
         setRingingCallId(data.id);
       } else {
-        throw new Error(data.error || 'Failed to start call');
+        throw new Error(data.error || '通話の開始に失敗しました');
       }
     } catch (err: any) {
       toast.error(`通話の開始に失敗しました: ${err.message}`);
+      setRingingTargetName('');
     }
   };
 
   const cancelCall = async () => {
-    if (ringingCallId) {
+    const callId = ringingCallIdRef.current;
+    if (callId) {
       fetch('/api/calls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'cancel', call_id: ringingCallId }),
+        body: JSON.stringify({ action: 'cancel', call_id: callId }),
       }).catch(console.error);
     }
     setRingingCallId(null);
-    setRingingTargetName("");
+    setRingingTargetName('');
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
   };
 
   // Poll for outgoing call status
   useEffect(() => {
     if (!ringingCallId || !user) return;
 
-    const interval = setInterval(async () => {
+    const uid = user.uid;
+
+    const poll = async () => {
       try {
-        const res = await fetch(`/api/calls?caller_uid=${user.uid}`);
+        const res = await fetch(`/api/calls?caller_uid=${uid}`);
+        if (!res.ok) return;
         const data = await res.json();
-        const currentCall = data.find((c: any) => c.id === ringingCallId);
-        
-        if (currentCall) {
-          if (currentCall.status === 'accepted') {
-            clearInterval(interval);
-            setRingingCallId(null);
-            navigate(`/call?room=${currentCall.room_name}`);
-          } else if (currentCall.status === 'rejected') {
-            clearInterval(interval);
-            toast.error(`${ringingTargetName} さんに拒否されました`);
-            setRingingCallId(null);
-            setRingingTargetName("");
+        if (!Array.isArray(data)) return;
+
+        const currentCallId = ringingCallIdRef.current;
+        const currentCall = data.find((c: any) => c.id === currentCallId);
+
+        if (!currentCall) return;
+
+        if (currentCall.status === 'accepted') {
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
           }
+          setRingingCallId(null);
+          navigate(`/call?room=${currentCall.room_name}`);
+        } else if (currentCall.status === 'rejected') {
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
+          toast.error(`${ringingTargetNameRef.current} さんに拒否されました`);
+          setRingingCallId(null);
+          setRingingTargetName('');
         }
       } catch (err) {
-        console.error('Poll failed:', err);
+        console.error('Poll error:', err);
       }
-    }, 2000);
+    };
 
-    return () => clearInterval(interval);
-  }, [ringingCallId, user, ringingTargetName, navigate]);
+    // Poll immediately then every 2 seconds
+    poll();
+    pollIntervalRef.current = setInterval(poll, 2000);
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, [ringingCallId, user?.uid, navigate]);
 
   return (
     <CallContext.Provider value={{ ringingCallId, ringingTargetName, startCall, cancelCall }}>
