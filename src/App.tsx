@@ -16,6 +16,7 @@ import MyPage from './pages/MyPage';
 import FaceScanner from './pages/FaceScanner';
 import Calendar from './pages/Calendar';
 import Meeting from './pages/Meeting';
+import IncomingCallOverlay from './components/IncomingCallOverlay';
 import './App.css';
 
 function ErrorBoundary({ children }: { children: React.ReactNode }) {
@@ -63,6 +64,7 @@ function AppContent() {
   return (
     <Router>
       <Navbar />
+      <IncomingCallOverlay />
       <main>
         <ErrorBoundary>
           <AppRoutes />
